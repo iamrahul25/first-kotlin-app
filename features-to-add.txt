@@ -1,0 +1,10 @@
+Features to add: 
+---------------
+
+- Add total number of reel blocker: at home page 
+- Add option to enable to disable the reel blocker at home page
+
+
+
+Features added: 
+--------------

@@ -38,8 +38,13 @@ class ShortsAccessibilityService : AccessibilityService() {
                     Log.d(TAG, "🚫 Blocking Reel — pressing BACK")
                     performGlobalAction(GLOBAL_ACTION_BACK)
                     lastActionTime.set(now)
-                    ServiceStateBus.update { it.copy(blockedTotal = it.blockedTotal + 1) }
-                    Log.d(TAG, "✅ Reel blocked. totalBlocked=${ServiceStateBus.state.value.blockedTotal}")
+                    ServiceStateBus.update {
+                        it.copy(
+                            blockedTotal = it.blockedTotal + 1,
+                            blockedToday = it.blockedToday + 1
+                        )
+                    }
+                    Log.d(TAG, "✅ Reel blocked. total=${ServiceStateBus.state.value.blockedTotal}, today=${ServiceStateBus.state.value.blockedToday}")
                 } else {
                     Log.d(TAG, "⏳ Cooldown active — skipping. remaining=${COOLDOWN_MS - delta}ms")
                 }
