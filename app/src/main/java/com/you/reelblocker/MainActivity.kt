@@ -43,7 +43,6 @@ import androidx.compose.material.icons.filled.BatteryChargingFull
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
@@ -114,14 +113,6 @@ class MainActivity : ComponentActivity() {
                     onOpenAccessibilitySettings = {
                         startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                     },
-                    onTestOnYouTube = {
-                        val ytIntent = context.packageManager.getLaunchIntentForPackage("com.google.android.youtube")
-                        if (ytIntent != null) {
-                            startActivity(ytIntent)
-                        } else {
-                            Toast.makeText(context, "YouTube app is not installed", Toast.LENGTH_SHORT).show()
-                        }
-                    },
                     onOpenAppSettings = {
                         val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                             data = Uri.fromParts("package", packageName, null)
@@ -154,7 +145,6 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen(
     state: ServiceStatus,
     onOpenAccessibilitySettings: () -> Unit,
-    onTestOnYouTube: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onResetStats: () -> Unit
 ) {
@@ -180,8 +170,7 @@ fun HomeScreen(
             // Main Hero Shield Card
             HeroShieldCard(
                 isShieldActive = isShieldActive,
-                onOpenAccessibilitySettings = onOpenAccessibilitySettings,
-                onTestOnYouTube = onTestOnYouTube
+                onOpenAccessibilitySettings = onOpenAccessibilitySettings
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -300,8 +289,7 @@ fun StatusPill(isShieldActive: Boolean) {
 @Composable
 fun HeroShieldCard(
     isShieldActive: Boolean,
-    onOpenAccessibilitySettings: () -> Unit,
-    onTestOnYouTube: () -> Unit
+    onOpenAccessibilitySettings: () -> Unit
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "halo")
     val haloScale by infiniteTransition.animateFloat(
@@ -428,47 +416,28 @@ fun HeroShieldCard(
                     )
                 }
             } else {
-                // Action buttons when active: Test on YouTube + Settings shortcut
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                // Action button when active: Settings shortcut
+                OutlinedButton(
+                    onClick = onOpenAccessibilitySettings,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, DarkCardBorder)
                 ) {
-                    Button(
-                        onClick = onTestOnYouTube,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyanPrimary)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = DarkBg,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Test in YouTube",
-                            color = DarkBg,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp
-                        )
-                    }
-
-                    OutlinedButton(
-                        onClick = onOpenAccessibilitySettings,
-                        modifier = Modifier.height(48.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.dp, DarkCardBorder)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = TextSecondary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = TextSecondary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Manage Accessibility Service",
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp
+                    )
                 }
             }
         }
