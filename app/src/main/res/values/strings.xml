@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Reel Blocker</string>
+    <string name="accessibility_description">Detects and blocks YouTube Shorts and Reels by monitoring the active screen content.</string>
 </resources>
