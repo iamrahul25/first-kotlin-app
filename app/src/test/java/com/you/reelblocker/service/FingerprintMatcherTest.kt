@@ -29,4 +29,32 @@ class FingerprintMatcherTest {
             )
         )
     }
+
+    @Test
+    fun `recognizes Instagram Reels viewer`() {
+        assertTrue(
+            FingerprintMatcher.matchesInstagramReelsHints(
+                setOf("com.instagram.android:id/clips_viewer_view_pager")
+            )
+        )
+    }
+
+    @Test
+    fun `rejects Instagram screens without Reels viewer`() {
+        assertFalse(
+            FingerprintMatcher.matchesInstagramReelsHints(
+                setOf("com.instagram.android:id/home_tab", "com.instagram.android:id/feed")
+            )
+        )
+    }
+
+    @Test
+    fun `rejects an Instagram home tree with a hidden Reels viewer`() {
+        assertFalse(
+            FingerprintMatcher.matchesInstagramReelsHints(
+                resourceIds = setOf("com.instagram.android:id/clips_viewer_view_pager"),
+                visibleResourceIds = emptySet()
+            )
+        )
+    }
 }

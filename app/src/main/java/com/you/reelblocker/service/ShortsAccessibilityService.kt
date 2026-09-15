@@ -19,7 +19,7 @@ class ShortsAccessibilityService : AccessibilityService() {
         if (event == null) return
 
         val packageName = event.packageName?.toString() ?: return
-        if (packageName != YOUTUBE_PACKAGE_NAME) return
+        if (packageName != YOUTUBE_PACKAGE_NAME && packageName != INSTAGRAM_PACKAGE_NAME) return
 
         val eventType = event.eventType
         if (eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
@@ -28,10 +28,16 @@ class ShortsAccessibilityService : AccessibilityService() {
         val rootNode = rootInActiveWindow ?: return
 
         try {
-            Log.d(TAG, "📺 YouTube active — checking for Shorts. class=${event.className}")
+            Log.d(TAG, "📺 $packageName active — checking for short-form video. class=${event.className}")
 
-            if (checkForShorts(rootNode)) {
-                Log.d(TAG, "🎬 Reel/Shorts detected!")
+            val blockedContentDetected = when (packageName) {
+                YOUTUBE_PACKAGE_NAME -> checkForShorts(rootNode)
+                INSTAGRAM_PACKAGE_NAME -> FingerprintMatcher().isInstagramReelsScreen(rootNode)
+                else -> false
+            }
+
+            if (blockedContentDetected) {
+                Log.d(TAG, "🎬 Short-form video detected!")
                 val now = System.currentTimeMillis()
                 val delta = now - lastActionTime.get()
                 if (delta >= COOLDOWN_MS) {
@@ -54,11 +60,7 @@ class ShortsAccessibilityService : AccessibilityService() {
         }
     }
 
-    /**
-     * Iteratively walks the node tree looking for YouTube Shorts markers.
-     * Matches by resource ID, text content, and content description
-     * against known Shorts-specific keywords.
-     */
+    /** Iteratively walks the node tree looking for YouTube Shorts markers. */
     private fun checkForShorts(rootNode: AccessibilityNodeInfo): Boolean {
         val stack = mutableListOf<AccessibilityNodeInfo>()
         stack.add(rootNode)
@@ -115,6 +117,7 @@ class ShortsAccessibilityService : AccessibilityService() {
     companion object {
         const val TAG = "ReelBlockerService"
         const val YOUTUBE_PACKAGE_NAME = "com.google.android.youtube"
+        const val INSTAGRAM_PACKAGE_NAME = "com.instagram.android"
         const val COOLDOWN_MS = 3000L
 
         // YouTube Shorts-specific view IDs and keywords

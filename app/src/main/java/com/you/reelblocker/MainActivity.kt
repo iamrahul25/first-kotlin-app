@@ -379,7 +379,7 @@ fun HeroShieldCard(
 
             Text(
                 text = if (isShieldActive)
-                    "YouTube Shorts will be automatically dismissed when opened."
+                    "YouTube Shorts and Instagram Reels will be automatically dismissed when opened."
                 else
                     "Grant Accessibility permission so Reel Blocker can intercept distraction loops.",
                 fontSize = 13.sp,
@@ -610,7 +610,7 @@ fun FeaturesSection() {
             FeatureRow(
                 icon = Icons.Default.FlashOn,
                 title = "Instant Interception",
-                description = "Detects Shorts UI and navigates back before video autoplay grabs your attention."
+                description = "Detects YouTube Shorts and Instagram Reels, then navigates back before autoplay grabs your attention."
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -626,7 +626,7 @@ fun FeaturesSection() {
             FeatureRow(
                 icon = Icons.Default.Shield,
                 title = "Zero Battery Drain",
-                description = "Dormant by default. Only activates when YouTube window content changes."
+                description = "Dormant by default. Only checks supported app windows when their content changes."
             )
         }
     }

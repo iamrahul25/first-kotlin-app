@@ -28,7 +28,7 @@ class BlockForegroundService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification: Notification = NotificationCompat.Builder(this, "reel_blocker_service")
             .setContentTitle("Reel Blocker")
-            .setContentText("Monitoring for Shorts playback")
+            .setContentText("Monitoring YouTube Shorts and Instagram Reels")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .build()
 
