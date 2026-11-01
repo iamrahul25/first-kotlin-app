@@ -23,7 +23,7 @@ Create a keystore once and keep it secure:
 
 ```powershell
 keytool -genkeypair -v `
-  -keystore reelblocker-release.jks `
+  -keystore scrollguard-release.keystore `
   -alias reelblocker `
   -keyalg RSA `
   -keysize 2048 `

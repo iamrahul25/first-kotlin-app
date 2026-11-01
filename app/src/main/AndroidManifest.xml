@@ -19,7 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FirstApp">
         <activity
-            android:name="com.you.reelblocker.MainActivity"
+            android:name="com.nightwise.scrollguard.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.FirstApp"
@@ -31,7 +31,7 @@
         </activity>
 
         <service
-            android:name="com.you.reelblocker.service.ShortsAccessibilityService"
+            android:name="com.nightwise.scrollguard.service.ShortsAccessibilityService"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true"
@@ -45,7 +45,7 @@
         </service>
 
         <service
-            android:name="com.you.reelblocker.service.BlockForegroundService"
+            android:name="com.nightwise.scrollguard.service.BlockForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
     </application>

@@ -1,14 +1,26 @@
+import getpass
 import os
+import re
 import shutil
 import subprocess
 import sys
 import time
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-PACKAGE = "com.you.reelblocker"
+PACKAGE = "com.nightwise.scrollguard"
 LAUNCH_COMPONENT = f"{PACKAGE}/{PACKAGE}.MainActivity"
 GRADLEW = os.path.join(PROJECT_DIR, "gradlew.bat" if os.name == "nt" else "gradlew")
-DEBUG_APK = os.path.join(PROJECT_DIR, "app", "build", "outputs", "apk", "debug", "app-debug.apk")
+OUTPUTS_DIR = os.path.join(PROJECT_DIR, "app", "build", "outputs")
+DEBUG_APK = os.path.join(OUTPUTS_DIR, "apk", "debug", "app-debug.apk")
+RELEASE_APK = os.path.join(OUTPUTS_DIR, "apk", "release", "app-release.apk")
+RELEASE_AAB = os.path.join(OUTPUTS_DIR, "bundle", "release", "app-release.aab")
+RELEASE_DIR = os.path.join(PROJECT_DIR, "release")
+APP_GRADLE = os.path.join(PROJECT_DIR, "app", "build.gradle.kts")
+LINT_REPORT = os.path.join(PROJECT_DIR, "app", "build", "reports", "lint-results-release.html")
+KEYSTORE_PROPS = os.path.join(PROJECT_DIR, "keystore.properties")
+DEFAULT_KEYSTORE = "scrollguard-release.keystore"
+DEFAULT_KEY_ALIAS = "reelblocker"
+MIN_JAVA_VERSION = 17
 EXE = ".exe" if os.name == "nt" else ""
 EMULATOR_BOOT_TIMEOUT = 300
 
@@ -34,6 +46,36 @@ def find_sdk_tool(subdir, name):
         if os.path.exists(path):
             return path
     return shutil.which(name)
+
+
+def find_build_tool(name):
+    """Finds a tool such as apksigner in the newest installed SDK build-tools."""
+    sdk_dir = find_sdk_dir()
+    build_tools = os.path.join(sdk_dir, "build-tools") if sdk_dir else ""
+    if not os.path.isdir(build_tools):
+        return None
+
+    def version_key(version):
+        return [int(part) if part.isdigit() else 0 for part in re.split(r"[.\-]", version)]
+
+    ext = ".bat" if os.name == "nt" else ""
+    for version in sorted(os.listdir(build_tools), key=version_key, reverse=True):
+        path = os.path.join(build_tools, version, name + ext)
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def find_java_tool(name):
+    candidates = []
+    if os.environ.get("JAVA_HOME"):
+        candidates.append(os.path.join(os.environ["JAVA_HOME"], "bin", name + EXE))
+    if shutil.which(name):
+        candidates.append(shutil.which(name))
+    if os.name == "nt":
+        program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+        candidates.append(os.path.join(program_files, "Android", "Android Studio", "jbr", "bin", name + EXE))
+    return next((path for path in candidates if os.path.exists(path)), None)
 
 
 ADB = find_sdk_tool("platform-tools", "adb")
@@ -246,6 +288,258 @@ def uninstall_app():
         print("App uninstalled.")
 
 
+def app_version():
+    """Returns (versionName, versionCode) from app/build.gradle.kts."""
+    with open(APP_GRADLE, encoding="utf-8") as f:
+        text = f.read()
+    name = re.search(r'versionName\s*=\s*"([^"]+)"', text)
+    code = re.search(r"versionCode\s*=\s*(\d+)", text)
+    return (name.group(1) if name else "unknown", code.group(1) if code else "unknown")
+
+
+def read_properties(path):
+    props = {}
+    if not os.path.exists(path):
+        return props
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith(("#", "!")) and "=" in line:
+                key, value = line.split("=", 1)
+                props[key.strip()] = value.strip().replace("\\\\", "\\")
+    return props
+
+
+def signing_configured():
+    props = read_properties(KEYSTORE_PROPS)
+    if not all(props.get(key) for key in ("storeFile", "storePassword", "keyAlias", "keyPassword")):
+        return False
+    return os.path.exists(os.path.join(PROJECT_DIR, props["storeFile"]))
+
+
+def write_keystore_properties(store_file, alias, store_password, key_password):
+    try:
+        rel = os.path.relpath(store_file, PROJECT_DIR)
+        store_ref = store_file if rel.startswith("..") else rel
+    except ValueError:
+        store_ref = store_file
+
+    def escape(value):
+        return value.replace("\\", "\\\\")
+
+    with open(KEYSTORE_PROPS, "w", encoding="utf-8") as f:
+        f.write("# Release signing for app/build.gradle.kts. Never commit this file.\n")
+        f.write(f"storeFile={store_ref.replace(os.sep, '/')}\n")
+        f.write(f"storePassword={escape(store_password)}\n")
+        f.write(f"keyAlias={escape(alias)}\n")
+        f.write(f"keyPassword={escape(key_password)}\n")
+
+
+def ensure_signing():
+    """Makes sure keystore.properties points at a usable keystore, creating one if needed."""
+    if signing_configured():
+        return True
+
+    keytool = find_java_tool("keytool")
+    if keytool is None:
+        print(f"keytool was not found. Install JDK {MIN_JAVA_VERSION}+ or set JAVA_HOME.")
+        return False
+
+    print("\nRelease signing is not set up yet (keystore.properties is missing or incomplete).")
+    default_store = os.path.join(PROJECT_DIR, DEFAULT_KEYSTORE)
+    if os.path.exists(default_store):
+        prompt = f"Path to existing keystore [{DEFAULT_KEYSTORE}]: "
+    else:
+        prompt = "Path to an existing keystore (leave empty to create a new one): "
+    existing = input(prompt).strip().strip('"')
+    if not existing and os.path.exists(default_store):
+        existing = default_store
+
+    if existing:
+        store_file = os.path.abspath(existing)
+        if not os.path.exists(store_file):
+            print(f"Keystore not found: {store_file}")
+            return False
+        alias = input(f"Key alias [{DEFAULT_KEY_ALIAS}]: ").strip() or DEFAULT_KEY_ALIAS
+        store_password = getpass.getpass("Keystore password: ")
+        key_password = getpass.getpass("Key password (leave empty if same as keystore): ") or store_password
+        check = subprocess.run(
+            [keytool, "-list", "-keystore", store_file, "-storepass", store_password, "-alias", alias],
+            capture_output=True,
+            text=True,
+        )
+        if check.returncode != 0:
+            print("Could not open the keystore with that alias and password:")
+            print((check.stdout or check.stderr).strip())
+            return False
+    else:
+        store_file = default_store
+        alias = DEFAULT_KEY_ALIAS
+        store_password = getpass.getpass("New keystore password (min 6 characters): ")
+        if len(store_password) < 6:
+            print("Password must be at least 6 characters.")
+            return False
+        if getpass.getpass("Confirm password: ") != store_password:
+            print("Passwords do not match.")
+            return False
+        key_password = store_password
+        owner = input("Your name or organization (shown in the certificate): ").strip() or "Reel Blocker"
+        dname = "CN=" + owner.replace(",", "\\,")
+
+        print(f"\n> keytool -genkeypair -keystore {DEFAULT_KEYSTORE} -alias {alias} ...")
+        created = subprocess.run(
+            [
+                keytool, "-genkeypair", "-keystore", store_file, "-alias", alias,
+                "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
+                "-storepass", store_password, "-keypass", key_password,
+                "-dname", dname,
+            ],
+            cwd=PROJECT_DIR,
+        )
+        if created.returncode != 0:
+            print("Failed to create the keystore.")
+            return False
+        print(f"Created {DEFAULT_KEYSTORE}.")
+
+    write_keystore_properties(store_file, alias, store_password, key_password)
+    print("Saved signing settings to keystore.properties (git-ignored).")
+    print("Back up the keystore and its password: every Play Store update must be signed with the same key.")
+    return True
+
+
+def build_release(task, output):
+    """Runs a signed Gradle release task and copies the result into release/."""
+    if not ensure_signing():
+        return None
+
+    if os.path.exists(output):
+        os.remove(output)
+    if not run_command([GRADLEW, task]):
+        print("Build failed.")
+        return None
+    if not os.path.exists(output):
+        print(f"Build finished but the output was not found at {output}")
+        return None
+
+    version_name, version_code = app_version()
+    extension = os.path.splitext(output)[1]
+    os.makedirs(RELEASE_DIR, exist_ok=True)
+    target = os.path.join(RELEASE_DIR, f"reel-blocker-v{version_name}-{version_code}{extension}")
+    shutil.copy2(output, target)
+    size_mb = os.path.getsize(target) / (1024 * 1024)
+    print(f"\nCopied to {os.path.relpath(target, PROJECT_DIR)} ({size_mb:.1f} MB)")
+    return target
+
+
+def build_release_apk():
+    apk = build_release("assembleRelease", RELEASE_APK)
+    if not apk:
+        return
+
+    apksigner = find_build_tool("apksigner")
+    if apksigner is None:
+        print("apksigner not found in SDK build-tools; skipped signature check.")
+        return
+    result = subprocess.run([apksigner, "verify", apk], capture_output=True, text=True)
+    if result.returncode == 0:
+        print("APK signature verified.")
+    else:
+        print("APK signature check failed:")
+        print((result.stdout or result.stderr).strip())
+
+
+def build_release_aab():
+    aab = build_release("bundleRelease", RELEASE_AAB)
+    if not aab:
+        return
+
+    jarsigner = find_java_tool("jarsigner")
+    if jarsigner is None:
+        print("jarsigner not found; skipped signature check.")
+    else:
+        result = subprocess.run([jarsigner, "-verify", aab], capture_output=True, text=True)
+        if result.returncode == 0 and "jar verified" in result.stdout:
+            print("AAB signature verified.")
+        else:
+            print("AAB signature check failed:")
+            print((result.stdout or result.stderr).strip())
+
+    _, version_code = app_version()
+    print(f"Upload this .aab in Play Console. versionCode is {version_code}; Play rejects a versionCode")
+    print("that was already uploaded, so bump versionCode in app/build.gradle.kts before the next upload.")
+
+
+def java_major_version(java):
+    result = subprocess.run([java, "-version"], capture_output=True, text=True)
+    match = re.search(r'version "(\d+)(?:\.(\d+))?', result.stderr + result.stdout)
+    if not match:
+        return None
+    major = int(match.group(1))
+    return int(match.group(2) or 0) if major == 1 else major
+
+
+def preflight_test():
+    """Checks the toolchain, then runs unit tests, lint and a debug build."""
+    failures = []
+
+    def report(status, name, detail=""):
+        print(f"[{status}] {name}" + (f" - {detail}" if detail else ""))
+        if status == "FAIL":
+            failures.append(name)
+
+    print("\n--- Environment ---")
+    java = find_java_tool("java")
+    java_version = java_major_version(java) if java else None
+    if java_version is None:
+        report("FAIL", "Java", f"not found; install JDK {MIN_JAVA_VERSION}+ or set JAVA_HOME")
+    elif java_version < MIN_JAVA_VERSION:
+        report("FAIL", "Java", f"version {java_version} at {java}; JDK {MIN_JAVA_VERSION}+ is required")
+    else:
+        report("PASS", "Java", f"version {java_version} ({java})")
+
+    sdk_dir = find_sdk_dir()
+    if sdk_dir and os.path.isdir(sdk_dir):
+        report("PASS", "Android SDK", sdk_dir)
+    else:
+        report("FAIL", "Android SDK", "not found; set ANDROID_HOME or sdk.dir in local.properties")
+
+    report("PASS" if os.path.exists(GRADLEW) else "FAIL", "Gradle wrapper", os.path.basename(GRADLEW))
+    if ADB:
+        report("PASS", "adb", ADB)
+    else:
+        report("WARN", "adb", "not found; needed only to run the app on a device")
+
+    if signing_configured():
+        report("PASS", "Release signing", "keystore.properties is set up")
+    else:
+        report("WARN", "Release signing", "not set up yet; options 8/9 will set it up")
+
+    version_name, version_code = app_version()
+    report("INFO", "App version", f"versionName {version_name}, versionCode {version_code}")
+
+    if failures:
+        print(f"\nPreflight failed: {', '.join(failures)}. Fix the environment before running Gradle checks.")
+        return False
+
+    print("\n--- Gradle checks ---")
+    checks = [
+        ("Unit tests", "testDebugUnitTest"),
+        ("Lint (release)", "lintRelease"),
+        ("Debug build", "assembleDebug"),
+    ]
+    for name, task in checks:
+        if run_command([GRADLEW, task]):
+            report("PASS", name)
+        else:
+            report("FAIL", name, f"see {LINT_REPORT}" if task == "lintRelease" else "")
+
+    if failures:
+        print(f"\nPreflight failed: {', '.join(failures)}")
+        return False
+    print("\nPreflight passed. Ready to build a release.")
+    return True
+
+
 MENU = [
     ("1", "Run the app in Emulator", run_on_emulator),
     ("2", "Run the app on connected mobile device (USB / adb)", run_on_physical_device),
@@ -253,6 +547,9 @@ MENU = [
     ("4", "Build debug APK only", build_debug_apk),
     ("5", "Show app logs", show_app_logs),
     ("6", "Uninstall the app from a device", uninstall_app),
+    ("7", "Preflight test (environment, unit tests, lint, debug build)", preflight_test),
+    ("8", "Build .apk app (Release)", build_release_apk),
+    ("9", "Build .aab app (Play Store, signed)", build_release_aab),
     ("0", "Exit", None),
 ]
 

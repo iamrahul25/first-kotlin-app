@@ -22,14 +22,14 @@ cd "c:/all-projects/first-kotlin-app"
 ## 3) Launch the app manually
 
 ```bash
-adb shell am start -n com.you.reelblocker/com.you.reelblocker.MainActivity
+adb shell am start -n com.nightwise.scrollguard/com.nightwise.scrollguard.MainActivity
 ```
 
 ## 4) Optional: build + install + launch in one command
 
 ```bash
 cd "c:/all-projects/first-kotlin-app"
-./gradlew installDebug && adb shell am start -n com.you.reelblocker/com.you.reelblocker.MainActivity
+./gradlew installDebug && adb shell am start -n com.nightwise.scrollguard/com.nightwise.scrollguard.MainActivity
 ```
 
 ## 5) If you want to inspect the app logs
