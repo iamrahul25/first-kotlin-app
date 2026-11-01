@@ -1,4 +1,4 @@
 <resources>
-    <string name="app_name">Reel Blocker</string>
-    <string name="accessibility_description">Detects and blocks YouTube Shorts and Instagram Reels by monitoring the active screen content.</string>
+    <string name="app_name">FocusBlock</string>
+    <string name="accessibility_description">Detects YouTube Shorts and Instagram Reels on screen so FocusBlock can block them or enforce your daily limits. Nothing leaves your device.</string>
 </resources>

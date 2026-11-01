@@ -1,34 +1,32 @@
 package com.you.reelblocker.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 
-private val ReelBlockerColorScheme = darkColorScheme(
-    primary = CyanPrimary,
-    onPrimary = DarkBg,
-    primaryContainer = DarkCard,
-    onPrimaryContainer = CyanPrimary,
-    secondary = VioletAccent,
-    onSecondary = DarkBg,
-    secondaryContainer = DarkCardHover,
-    onSecondaryContainer = VioletAccent,
-    tertiary = EmeraldActive,
-    background = DarkBg,
-    onBackground = TextPrimary,
-    surface = DarkSurface,
-    onSurface = TextPrimary,
-    surfaceVariant = DarkCard,
-    onSurfaceVariant = TextSecondary,
-    outline = DarkCardBorder
+private val FocusBlockColorScheme = lightColorScheme(
+    primary = Forest,
+    onPrimary = CardWhite,
+    primaryContainer = Mint,
+    onPrimaryContainer = ForestDeep,
+    secondary = Purple,
+    onSecondary = CardWhite,
+    background = Cream,
+    onBackground = Ink,
+    surface = CardWhite,
+    onSurface = Ink,
+    surfaceVariant = StepperBg,
+    onSurfaceVariant = Slate,
+    outline = CardBorder,
+    error = Red
 )
 
 @Composable
-fun FirstAppTheme(
+fun FocusBlockTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
-        colorScheme = ReelBlockerColorScheme,
+        colorScheme = FocusBlockColorScheme,
         typography = Typography,
         content = content
     )

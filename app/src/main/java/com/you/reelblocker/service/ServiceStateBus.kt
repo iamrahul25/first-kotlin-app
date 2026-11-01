@@ -5,10 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 data class ServiceStatus(
-    val isServiceRunning: Boolean = false,
-    val isAccessibilityPermissionGranted: Boolean = false,
-    val blockedToday: Int = 0,
-    val blockedTotal: Int = 0
+    val isServiceRunning: Boolean = false
 )
 
 object ServiceStateBus {

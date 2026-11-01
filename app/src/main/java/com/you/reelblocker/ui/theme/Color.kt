@@ -1,48 +1,31 @@
 package com.you.reelblocker.ui.theme
 
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
-// Brand palette
-val DarkBg = Color(0xFF0A0E17)
-val DarkSurface = Color(0xFF121826)
-val DarkCard = Color(0xFF1A2234)
-val DarkCardBorder = Color(0xFF26334D)
-val DarkCardHover = Color(0xFF222C42)
+// FocusBlock palette (from the Figma design)
+val Cream = Color(0xFFFAF7F0)
+val Ink = Color(0xFF1E2A23)
+val Slate = Color(0xFF6B7280)
+val Mist = Color(0xFF9CA3AF)
+val CardBorder = Color(0xFFECEAE4)
+val CardWhite = Color(0xFFFFFFFF)
 
-val CyanPrimary = Color(0xFF00E5FF)
-val CyanSecondary = Color(0xFF06B6D4)
-val VioletAccent = Color(0xFF8B5CF6)
-val PurpleAccent = Color(0xFFA855F7)
+val Forest = Color(0xFF2F6B4F)
+val ForestDeep = Color(0xFF1F4E3A)
+val ToggleOn = Color(0xFF3A7D5C)
+val ToggleOff = Color(0xFFD6D3CB)
 
-val EmeraldActive = Color(0xFF10B981)
-val EmeraldGlow = Color(0x3310B981)
-val EmeraldBg = Color(0x1A10B981)
+val Mint = Color(0xFFE4F2E8)
+val MintSoft = Color(0xFFEEF5EF)
+val StepperBg = Color(0xFFF7F6F2)
+val NeutralChip = Color(0xFFF1EFEA)
 
-val AmberWarning = Color(0xFFF59E0B)
-val AmberGlow = Color(0x33F59E0B)
-val AmberBg = Color(0x1AF59E0B)
+val BlueTint = Color(0xFFE8F0FE)
+val Blue = Color(0xFF3B82F6)
+val PurpleTint = Color(0xFFEFE9FD)
+val Purple = Color(0xFF7C5CE0)
 
-val RedAlert = Color(0xFFEF4444)
-val RedBg = Color(0x1AEF4444)
-
-val TextPrimary = Color(0xFFF8FAFC)
-val TextSecondary = Color(0xFF94A3B8)
-val TextMuted = Color(0xFF64748B)
-
-// Gradients
-val PrimaryGradient = Brush.horizontalGradient(
-    listOf(CyanPrimary, VioletAccent)
-)
-
-val ActiveShieldGradient = Brush.linearGradient(
-    listOf(Color(0xFF00E5FF), Color(0xFF8B5CF6), Color(0xFF3B82F6))
-)
-
-val InactiveShieldGradient = Brush.linearGradient(
-    listOf(Color(0xFF64748B), Color(0xFF334155))
-)
-
-val CardGradient = Brush.verticalGradient(
-    listOf(Color(0xFF1E283E), Color(0xFF131A29))
-)
+val AmberTint = Color(0xFFFDF3E1)
+val Amber = Color(0xFFB45309)
+val RedTint = Color(0xFFFDECEC)
+val Red = Color(0xFFB42318)
