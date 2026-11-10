@@ -33,6 +33,7 @@ class ShortsAccessibilityService : AccessibilityService() {
     private var session: WatchSession? = null
     private var lastEndedPlatform: Platform? = null
     private var lastEndedAt = 0L
+    private var lastBrowserShortUrl: String? = null
     private var receiverRegistered = false
 
     private val screenOffReceiver = object : BroadcastReceiver() {
@@ -92,20 +93,24 @@ class ShortsAccessibilityService : AccessibilityService() {
         }
 
         if (onShortForm) {
-            handleShortForm(platform, eventType, now)
+            handleShortForm(platform, eventType, now, browserShortsUrl(rootNode))
         } else {
             endSession(now)
         }
     }
 
-    private fun handleShortForm(platform: Platform, eventType: Int, now: Long) {
+    private fun handleShortForm(platform: Platform, eventType: Int, now: Long, browserUrl: String?) {
         val settings = repository.settings.value
         val current = session
         val isNewSession = current == null || current.platform != platform
         val resumedRecently = lastEndedPlatform == platform && now - lastEndedAt < RESUME_GRACE_MS
-        val isNewReel = (isNewSession && !resumedRecently) ||
-            (!isNewSession && eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED &&
-                now - lastReelAt > REEL_DEBOUNCE_MS)
+        val advanced = if (browserUrl != null) {
+            browserUrl != lastBrowserShortUrl
+        } else {
+            eventType == AccessibilityEvent.TYPE_VIEW_SCROLLED && now - lastReelAt > REEL_DEBOUNCE_MS
+        }
+        val isNewReel = (isNewSession && !resumedRecently) || (!isNewSession && advanced)
+        lastBrowserShortUrl = browserUrl
 
         val reason = blockReason(settings, platform, isNewReel)
         if (reason != null) {
@@ -178,7 +183,7 @@ class ShortsAccessibilityService : AccessibilityService() {
 
         val root = rootInActiveWindow
         val stillWatching = root != null &&
-            root.packageName?.toString() == current.platform.packageName &&
+            Platform.fromPackage(root.packageName?.toString().orEmpty()) == current.platform &&
             runCatching { isShortFormScreen(current.platform, root) }.getOrDefault(false)
         if (!stillWatching) {
             endSession(now)
@@ -213,10 +218,23 @@ class ShortsAccessibilityService : AccessibilityService() {
         lastEndedAt = now
     }
 
-    private fun isShortFormScreen(platform: Platform, root: AccessibilityNodeInfo): Boolean = when (platform) {
-        Platform.YOUTUBE -> checkForShorts(root)
-        Platform.INSTAGRAM -> FingerprintMatcher().isInstagramReelsScreen(root)
-        else -> false
+    private fun isShortFormScreen(platform: Platform, root: AccessibilityNodeInfo): Boolean {
+        val rootPackage = root.packageName?.toString()
+        if (rootPackage != null && rootPackage in platform.browserPackages) {
+            return browserShortsUrl(root) != null
+        }
+        return when (platform) {
+            Platform.YOUTUBE -> checkForShorts(root)
+            Platform.INSTAGRAM -> FingerprintMatcher().isInstagramReelsScreen(root)
+            Platform.SNAPCHAT -> FingerprintMatcher().isSnapchatSpotlightScreen(root)
+            else -> false
+        }
+    }
+
+    private fun browserShortsUrl(root: AccessibilityNodeInfo): String? {
+        val rootPackage = root.packageName?.toString() ?: return null
+        if (rootPackage !in Platform.YOUTUBE.browserPackages) return null
+        return runCatching { FingerprintMatcher().browserYouTubeShortsUrl(root, rootPackage) }.getOrNull()
     }
 
     /** Iteratively walks the node tree looking for YouTube Shorts markers. */

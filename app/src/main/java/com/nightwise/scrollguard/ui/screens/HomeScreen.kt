@@ -371,7 +371,7 @@ private fun AppUsageCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Allow Usage Access to see how long you spend in YouTube and Instagram.",
+                    text = "Allow Usage Access to see how long you spend in YouTube, Instagram and Snapchat.",
                     modifier = Modifier.weight(1f),
                     color = Slate,
                     fontSize = 12.sp,

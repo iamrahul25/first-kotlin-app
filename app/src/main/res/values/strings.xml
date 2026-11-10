@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">FocusBlock</string>
-    <string name="accessibility_description">Detects YouTube Shorts and Instagram Reels on screen so FocusBlock can block them or enforce your daily limits. Nothing leaves your device.</string>
+    <string name="accessibility_description">Detects YouTube Shorts, Instagram Reels and Snapchat Spotlight on screen so FocusBlock can block them or enforce your daily limits. Nothing leaves your device.</string>
 </resources>

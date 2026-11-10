@@ -121,7 +121,7 @@ fun PermissionsScreen(
                     tileColor = PurpleTint,
                     title = "Usage Access",
                     tag = "(Optional)",
-                    description = "Shows total time spent in YouTube and Instagram.",
+                    description = "Shows total time spent in YouTube, Instagram and Snapchat.",
                     granted = status.usageAccess,
                     onAllow = actions.requestUsageAccess
                 )

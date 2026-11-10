@@ -281,7 +281,7 @@ private fun MainTabs(
                     onBack = { onTabChange(Tab.Home) },
                     onPlatformToggle = onPlatformToggle,
                     onAddPlatforms = {
-                        Toast.makeText(context, "Snapchat and Facebook are coming soon.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Facebook is coming soon.", Toast.LENGTH_SHORT).show()
                     }
                 )
 

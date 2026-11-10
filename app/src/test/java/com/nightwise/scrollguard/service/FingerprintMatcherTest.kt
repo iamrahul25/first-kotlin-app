@@ -57,4 +57,45 @@ class FingerprintMatcherTest {
             )
         )
     }
+
+    @Test
+    fun `recognizes YouTube Shorts URLs shown in a browser address bar`() {
+        listOf(
+            "m.youtube.com/shorts/xuS8V4q0WcM",
+            "https://www.youtube.com/shorts/xuS8V4q0WcM?feature=share",
+            "youtube.com/shorts"
+        ).forEach { assertTrue(it, FingerprintMatcher.matchesYouTubeShortsUrl(it)) }
+    }
+
+    @Test
+    fun `rejects non-Shorts browser URLs`() {
+        listOf(
+            "m.youtube.com",
+            "m.youtube.com/watch?v=xuS8V4q0WcM",
+            "m.youtube.com/results?search_query=shorts",
+            "notyoutube.com/shorts/abc",
+            "m.youtube.com/shortsfan"
+        ).forEach { assertFalse(it, FingerprintMatcher.matchesYouTubeShortsUrl(it)) }
+    }
+
+    @Test
+    fun `recognizes Snapchat Spotlight viewer`() {
+        assertTrue(
+            FingerprintMatcher.matchesSnapchatSpotlightHints(
+                setOf("com.snapchat.android:id/spotlight_container")
+            )
+        )
+    }
+
+    @Test
+    fun `rejects Snapchat screens without Spotlight viewer`() {
+        assertFalse(
+            FingerprintMatcher.matchesSnapchatSpotlightHints(
+                setOf(
+                    "com.snapchat.android:id/ngs_spotlight_icon_container",
+                    "com.snapchat.android:id/ff_item"
+                )
+            )
+        )
+    }
 }

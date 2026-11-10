@@ -13,6 +13,7 @@ data class FocusSettings(
     val protectionEnabled: Boolean = true,
     val youtubeBlocked: Boolean = true,
     val instagramBlocked: Boolean = true,
+    val snapchatBlocked: Boolean = true,
     val dailyTimerEnabled: Boolean = false,
     val dailyTimerMinutes: Int = 120,
     val reelsLimitEnabled: Boolean = false,
@@ -23,12 +24,14 @@ data class FocusSettings(
     fun isBlocked(platform: Platform): Boolean = when (platform) {
         Platform.YOUTUBE -> youtubeBlocked
         Platform.INSTAGRAM -> instagramBlocked
+        Platform.SNAPCHAT -> snapchatBlocked
         else -> false
     }
 
     fun withBlocked(platform: Platform, blocked: Boolean): FocusSettings = when (platform) {
         Platform.YOUTUBE -> copy(youtubeBlocked = blocked)
         Platform.INSTAGRAM -> copy(instagramBlocked = blocked)
+        Platform.SNAPCHAT -> copy(snapchatBlocked = blocked)
         else -> this
     }
 }
@@ -83,6 +86,7 @@ class FocusRepository private constructor(context: Context) {
             putBoolean(KEY_PROTECTION, updated.protectionEnabled)
             putBoolean(KEY_YOUTUBE, updated.youtubeBlocked)
             putBoolean(KEY_INSTAGRAM, updated.instagramBlocked)
+            putBoolean(KEY_SNAPCHAT, updated.snapchatBlocked)
             putBoolean(KEY_TIMER_ENABLED, updated.dailyTimerEnabled)
             putInt(KEY_TIMER_MINUTES, updated.dailyTimerMinutes)
             putBoolean(KEY_REELS_ENABLED, updated.reelsLimitEnabled)
@@ -138,6 +142,7 @@ class FocusRepository private constructor(context: Context) {
             protectionEnabled = prefs.getBoolean(KEY_PROTECTION, defaults.protectionEnabled),
             youtubeBlocked = prefs.getBoolean(KEY_YOUTUBE, defaults.youtubeBlocked),
             instagramBlocked = prefs.getBoolean(KEY_INSTAGRAM, defaults.instagramBlocked),
+            snapchatBlocked = prefs.getBoolean(KEY_SNAPCHAT, defaults.snapchatBlocked),
             dailyTimerEnabled = prefs.getBoolean(KEY_TIMER_ENABLED, defaults.dailyTimerEnabled),
             dailyTimerMinutes = prefs.getInt(KEY_TIMER_MINUTES, defaults.dailyTimerMinutes),
             reelsLimitEnabled = prefs.getBoolean(KEY_REELS_ENABLED, defaults.reelsLimitEnabled),
@@ -180,6 +185,7 @@ class FocusRepository private constructor(context: Context) {
         private const val KEY_PROTECTION = "protection_enabled"
         private const val KEY_YOUTUBE = "block_youtube"
         private const val KEY_INSTAGRAM = "block_instagram"
+        private const val KEY_SNAPCHAT = "block_snapchat"
         private const val KEY_TIMER_ENABLED = "daily_timer_enabled"
         private const val KEY_TIMER_MINUTES = "daily_timer_minutes"
         private const val KEY_REELS_ENABLED = "reels_limit_enabled"
