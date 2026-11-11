@@ -4,6 +4,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.SleepEntry
@@ -116,17 +117,27 @@ class ScreenTimeRepository(private val context: Context) {
         while (events.hasNextEvent()) {
             events.getNextEvent(event)
             if (event.eventType in TRACKED_TYPES) {
-                result += RawEvent(event.packageName ?: "", event.eventType, event.timeStamp)
+                result += RawEvent(event.packageName ?: "", event.eventType, event.timeStamp, event.className)
             }
         }
         return result
     }
 
+    /**
+     * Home screens: the default launcher plus home apps with no app-drawer icon. Apps like
+     * Settings also declare a (boot-time) home screen but are real apps, so they still count.
+     */
     private fun ignoredPackages(): Set<String> {
+        val pm = context.packageManager
         val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        val launchers = context.packageManager.queryIntentActivities(home, 0)
+        val defaultHome = pm.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
+        val withIcon = pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
             .mapNotNull { it.activityInfo?.packageName }
-        return launchers.toSet() + SYSTEM_UI
+            .toSet()
+        val iconlessHomes = pm.queryIntentActivities(home, 0)
+            .mapNotNull { it.activityInfo?.packageName }
+            .filter { it !in withIcon }
+        return iconlessHomes.toSet() + listOfNotNull(defaultHome) + SYSTEM_UI
     }
 
     companion object {

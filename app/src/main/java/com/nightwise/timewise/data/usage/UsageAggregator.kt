@@ -12,7 +12,13 @@ object EventType {
     const val DEVICE_SHUTDOWN = 26
 }
 
-data class RawEvent(val packageName: String, val type: Int, val timestamp: Long)
+data class RawEvent(
+    val packageName: String,
+    val type: Int,
+    val timestamp: Long,
+    /** Activity class for activity events; one app can have several on screen in turn. */
+    val className: String? = null
+)
 
 data class UsageSession(val packageName: String, val start: Long, val end: Long) {
     val durationMillis: Long get() = end - start
@@ -47,8 +53,11 @@ object UsageAggregator {
     private const val HOUR_MS = 60 * 60 * 1000L
 
     /**
-     * Rebuilds foreground sessions, assuming one foreground app at a time. Packages in
-     * [ignored] (launchers, system UI) end the current session without starting one.
+     * Rebuilds foreground sessions, counting one app at a time so the total never exceeds
+     * screen-on time. An app stays in front until none of its activities are resumed:
+     * moving between screens stops the old activity only after the new one resumes.
+     * Packages in [ignored] (launchers, system UI) are never counted, and don't end the
+     * current session either, since a floating or split-screen app stays visible over them.
      */
     fun sessions(
         events: List<RawEvent>,
@@ -59,6 +68,7 @@ object UsageAggregator {
         val result = mutableListOf<UsageSession>()
         var currentPkg: String? = null
         var currentStart = 0L
+        val resumedActivities = mutableSetOf<String?>()
 
         fun close(at: Long) {
             val pkg = currentPkg ?: return
@@ -73,21 +83,26 @@ object UsageAggregator {
                 }
             }
             currentPkg = null
+            resumedActivities.clear()
         }
 
         for (event in events.sortedBy { it.timestamp }) {
             if (event.timestamp > windowEnd) break
             when (event.type) {
                 EventType.ACTIVITY_RESUMED -> {
-                    if (event.packageName == currentPkg) continue
-                    close(event.timestamp)
-                    if (event.packageName !in ignored) {
+                    if (event.packageName in ignored) continue
+                    if (event.packageName != currentPkg) {
+                        close(event.timestamp)
                         currentPkg = event.packageName
                         currentStart = event.timestamp
                     }
+                    resumedActivities += event.className
                 }
-                EventType.ACTIVITY_PAUSED, EventType.ACTIVITY_STOPPED ->
-                    if (event.packageName == currentPkg) close(event.timestamp)
+                EventType.ACTIVITY_PAUSED, EventType.ACTIVITY_STOPPED -> {
+                    if (event.packageName != currentPkg) continue
+                    resumedActivities -= event.className
+                    if (resumedActivities.isEmpty()) close(event.timestamp)
+                }
                 EventType.SCREEN_NON_INTERACTIVE, EventType.KEYGUARD_SHOWN, EventType.DEVICE_SHUTDOWN ->
                     close(event.timestamp)
             }

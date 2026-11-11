@@ -9,8 +9,9 @@ class UsageAggregatorTest {
     private val min = 60_000L
     private val hour = 60 * min
 
-    private fun resumed(pkg: String, at: Long) = RawEvent(pkg, EventType.ACTIVITY_RESUMED, at)
-    private fun paused(pkg: String, at: Long) = RawEvent(pkg, EventType.ACTIVITY_PAUSED, at)
+    private fun resumed(pkg: String, at: Long, cls: String? = null) = RawEvent(pkg, EventType.ACTIVITY_RESUMED, at, cls)
+    private fun paused(pkg: String, at: Long, cls: String? = null) = RawEvent(pkg, EventType.ACTIVITY_PAUSED, at, cls)
+    private fun stopped(pkg: String, at: Long, cls: String? = null) = RawEvent(pkg, EventType.ACTIVITY_STOPPED, at, cls)
     private fun screenOff(at: Long) = RawEvent("android", EventType.SCREEN_NON_INTERACTIVE, at)
     private fun screenOn(at: Long) = RawEvent("android", EventType.SCREEN_INTERACTIVE, at)
     private fun unlock(at: Long) = RawEvent("android", EventType.KEYGUARD_HIDDEN, at)
@@ -23,12 +24,37 @@ class UsageAggregatorTest {
     }
 
     @Test
-    fun launcherEndsSessionWithoutCounting() {
-        val events = listOf(resumed("a", 0), resumed("launcher", 5 * min), resumed("b", 20 * min), paused("b", 30 * min))
+    fun launcherTimeIsNotCounted() {
+        val events = listOf(
+            resumed("a", 0), paused("a", 5 * min), resumed("launcher", 5 * min),
+            resumed("b", 20 * min), paused("b", 30 * min)
+        )
         val sessions = UsageAggregator.sessions(events, 0, hour, ignored = setOf("launcher"))
         assertEquals(5 * min, sessions.filter { it.packageName == "a" }.sumOf { it.durationMillis })
         assertEquals(10 * min, sessions.filter { it.packageName == "b" }.sumOf { it.durationMillis })
         assertEquals(0, sessions.count { it.packageName == "launcher" })
+    }
+
+    @Test
+    fun stoppingThePreviousScreenDoesNotEndTheApp() {
+        // Opening a chat and going back: the old activity stops only after the new one resumes.
+        val events = listOf(
+            resumed("slack", 0, "Home"),
+            paused("slack", 1 * min, "Home"), resumed("slack", 1 * min, "Chat"), stopped("slack", 1 * min + 500, "Home"),
+            paused("slack", 2 * min, "Chat"), resumed("slack", 2 * min, "Home"), stopped("slack", 2 * min + 500, "Chat"),
+            screenOff(12 * min)
+        )
+        assertEquals(listOf(UsageSession("slack", 0, 12 * min)), UsageAggregator.sessions(events, 0, hour))
+    }
+
+    @Test
+    fun floatingWindowOverHomeScreenKeepsCounting() {
+        val events = listOf(
+            screenOn(0), resumed("slack", 1_000, "Home"), resumed("launcher", 1_000, "Launcher"),
+            screenOff(10 * min)
+        )
+        val sessions = UsageAggregator.sessions(events, 0, hour, ignored = setOf("launcher"))
+        assertEquals(listOf(UsageSession("slack", 1_000, 10 * min)), sessions)
     }
 
     @Test

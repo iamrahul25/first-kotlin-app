@@ -280,6 +280,14 @@ def show_app_logs():
         print("\nStopped logs.")
 
 
+def verify_screen_time():
+    if not require_adb():
+        return
+    serial = pick_ready_device()
+    if serial:
+        run_command([sys.executable, os.path.join(PROJECT_DIR, "tools", "verify_screen_time.py"), ADB, serial])
+
+
 def uninstall_app():
     if not require_adb():
         return
@@ -550,6 +558,7 @@ MENU = [
     ("7", "Preflight test (environment, unit tests, lint, debug build)", preflight_test),
     ("8", "Build .apk app (Release)", build_release_apk),
     ("9", "Build .aab app (Play Store, signed)", build_release_aab),
+    ("10", "Verify screen time against Android's own numbers", verify_screen_time),
     ("0", "Exit", None),
 ]
 
