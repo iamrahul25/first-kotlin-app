@@ -2,13 +2,13 @@ Features to add:
 ---------------
 
 - Add a feature where we can do app wise analysis: meaning how much a app has wasted our time: 
+And we can see top weekly, monthly app used and it's total time wasted. 
+And can see top monthly time wasted apps. So, that we can add time on particular app accordingly. 
 
 -> Eg: If we select a app say instagram: 
-- 
-
-- Add somewhere data when did you install this app and give all permission: 
-so, that we can monitor if the app is actually helping or not reducing the addition or not. 
-Can add other things accordingly. Ask me if any question. 
+- We can see how much total: a day, week, and monthy and so far we have wasted
+- what average time so, far
+- Daily usage of app graph
 
 - Add a option in Focus section: add individual limit on individual app
 And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
@@ -28,3 +28,9 @@ Features added:
   average - Monk (<2h), Mindful (2-4h), Hooked (4-6h), Addict (6-8h), Zombie (8h+). Shows a
   gauge of where you stand, how much to cut a day to level up, days a year lost to the phone,
   and the full level ladder.
+
+- "Is TimeWise helping?" card (Profile screen): saves your average from the 7 days before
+  install as the starting point (or your first week if Android has no older data), then shows
+  before vs last 7 days, a verdict (working / no change / worse), total time saved, unlocks
+  before vs now, weekly chart against the starting point, and milestones: install date and
+  when usage access and notifications were turned on. Settings shows "With TimeWise since".
