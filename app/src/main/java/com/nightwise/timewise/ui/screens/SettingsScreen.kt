@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bedtime
+import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.R
+import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.FocusSettings
 import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.ui.components.IconTile
@@ -34,6 +36,10 @@ import com.nightwise.timewise.ui.components.ScreenHeader
 import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.focusCard
 import com.nightwise.timewise.ui.formatMinutesOfDay
+import com.nightwise.timewise.ui.formatTime
+import com.nightwise.timewise.ui.relativeDayLabel
+import com.nightwise.timewise.ui.theme.Forest
+import com.nightwise.timewise.ui.theme.Mint
 import com.nightwise.timewise.ui.theme.Amber
 import com.nightwise.timewise.ui.theme.AmberTint
 import com.nightwise.timewise.ui.theme.Ink
@@ -46,8 +52,10 @@ import com.nightwise.timewise.ui.theme.Slate
 fun SettingsScreen(
     settings: FocusSettings,
     permissions: PermissionStatus,
+    lastBackgroundSave: Long?,
     onOpenPermissions: () -> Unit,
-    onOpenBedtime: () -> Unit
+    onOpenBedtime: () -> Unit,
+    onOpenBatterySettings: () -> Unit
 ) {
     val context = LocalContext.current
     Column(
@@ -80,6 +88,29 @@ fun SettingsScreen(
                 "Reminder off"
             },
             onClick = onOpenBedtime
+        )
+        SettingsRow(
+            icon = Icons.Rounded.CloudDone,
+            tint = Forest,
+            tileColor = Mint,
+            title = "Daily history save",
+            subtitle = lastBackgroundSave?.let {
+                val today = FocusRepository.currentEpochDay()
+                val day = when (FocusRepository.currentEpochDay(it)) {
+                    today -> "today"
+                    today - 1 -> "yesterday"
+                    else -> "on ${relativeDayLabel(FocusRepository.currentEpochDay(it), today)}"
+                }
+                "Last saved $day at ${formatTime(context, it)}"
+            } ?: "Runs every night after midnight",
+            onClick = onOpenBatterySettings
+        )
+        Text(
+            text = "Saves each day even if you don't open TimeWise. If it stops running, allow TimeWise to run in the background in battery settings.",
+            color = Mist,
+            fontSize = 11.sp,
+            lineHeight = 15.sp,
+            modifier = Modifier.padding(horizontal = 4.dp)
         )
 
         Row(

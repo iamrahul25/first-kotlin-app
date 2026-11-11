@@ -6,6 +6,7 @@ import android.content.Intent
 import com.nightwise.timewise.challenge.ChallengeScheduler
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.challenge.ChallengeRepository
+import com.nightwise.timewise.snapshot.DailySnapshotScheduler
 
 /** Shows the bedtime reminder, then arms the next one. */
 class BedtimeReceiver : BroadcastReceiver() {
@@ -23,6 +24,7 @@ class SystemEventsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in HANDLED_ACTIONS) return
         BedtimeScheduler.sync(context)
+        DailySnapshotScheduler.schedule(context)
         ChallengeRepository.get(context).state.value.active?.let { ChallengeScheduler.schedule(context, it) }
     }
 

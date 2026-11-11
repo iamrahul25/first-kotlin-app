@@ -19,8 +19,15 @@ usage stats, then nudges you to spend it better.
 Everything is computed on the device. No data leaves the phone unless you share a report.
 
 Android keeps detailed usage events for only about 10 days, so TimeWise saves a daily
-summary (total, unlocks, top 10 apps) each time it runs. The month view, trend and reports
-fill in from that saved history over time.
+summary (total, unlocks, top 10 apps, sleep) every night just after midnight in the
+background, and whenever the app is opened. The month view, trend and reports fill in from
+that saved history over time. Settings shows when the last nightly save ran.
+
+To trigger the nightly save by hand on a debug build:
+
+```bash
+adb shell am broadcast -n com.nightwise.timewise/.snapshot.DailySnapshotReceiver
+```
 
 ## Permissions
 

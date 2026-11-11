@@ -100,6 +100,13 @@ class FocusRepository private constructor(context: Context) {
         }
     }
 
+    /** When the daily background save last ran, or null if it never has. */
+    fun lastBackgroundSave(): Long? = prefs.getLong(KEY_LAST_BACKGROUND_SAVE, -1L).takeIf { it > 0 }
+
+    fun markBackgroundSave(at: Long = System.currentTimeMillis()) {
+        prefs.edit(commit = true) { putLong(KEY_LAST_BACKGROUND_SAVE, at) }
+    }
+
     @Synchronized
     fun pruneOldDays(today: Long = currentEpochDay()) {
         val cutoff = today - RETENTION_DAYS
@@ -136,6 +143,7 @@ class FocusRepository private constructor(context: Context) {
         private const val KEY_BEDTIME_MINUTES = "bedtime_minutes"
         private const val KEY_WAKE_MINUTES = "wake_minutes"
         private const val KEY_REMINDER_LEAD = "reminder_lead_minutes"
+        private const val KEY_LAST_BACKGROUND_SAVE = "last_background_save"
 
         @Volatile
         private var instance: FocusRepository? = null

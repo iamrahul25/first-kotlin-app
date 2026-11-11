@@ -45,6 +45,7 @@ import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.permissions.PermissionUtils
+import com.nightwise.timewise.snapshot.DailySnapshotScheduler
 import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
 import com.nightwise.timewise.ui.screens.AppsScreen
@@ -94,6 +95,7 @@ class MainActivity : ComponentActivity() {
         repository = FocusRepository.get(this)
         refreshPermissions()
         BedtimeScheduler.sync(this)
+        DailySnapshotScheduler.schedule(this)
 
         val actions = PermissionActions(
             requestUsageAccess = { PermissionUtils.openUsageAccessSettings(this) },
@@ -266,8 +268,10 @@ private fun TimeWiseApp(
                             Tab.Settings -> SettingsScreen(
                                 settings = settings,
                                 permissions = permissions,
+                                lastBackgroundSave = repository.lastBackgroundSave(),
                                 onOpenPermissions = { navigate(Route.Permissions) },
-                                onOpenBedtime = { tab = Tab.Bedtime }
+                                onOpenBedtime = { tab = Tab.Bedtime },
+                                onOpenBatterySettings = { PermissionUtils.openAppDetails(context) }
                             )
                         }
                     }

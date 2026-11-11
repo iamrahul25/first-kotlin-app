@@ -60,6 +60,10 @@
             android:exported="false" />
 
         <receiver
+            android:name="com.nightwise.timewise.snapshot.DailySnapshotReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name="com.nightwise.timewise.bedtime.SystemEventsReceiver"
             android:exported="true">
             <intent-filter>
