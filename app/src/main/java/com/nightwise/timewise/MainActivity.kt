@@ -45,6 +45,7 @@ import com.nightwise.timewise.data.badges.BadgeRepository
 import com.nightwise.timewise.data.challenge.ChallengeRepository
 import com.nightwise.timewise.data.journey.JourneyLogic
 import com.nightwise.timewise.data.journey.JourneyRepository
+import com.nightwise.timewise.data.limits.AppLimitRepository
 import com.nightwise.timewise.data.profile.ProfileLogic
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import com.nightwise.timewise.data.usage.UsageSnapshot
@@ -55,11 +56,14 @@ import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
 import com.nightwise.timewise.ui.screens.AppDetailScreen
 import com.nightwise.timewise.ui.screens.AppInsightsScreen
+import com.nightwise.timewise.ui.screens.AppLimitPickerScreen
 import com.nightwise.timewise.ui.screens.AppsScreen
+import com.nightwise.timewise.ui.screens.AwarenessScreen
 import com.nightwise.timewise.ui.screens.BadgesScreen
 import com.nightwise.timewise.ui.screens.BedtimeScreen
 import com.nightwise.timewise.ui.screens.FeaturesScreen
 import com.nightwise.timewise.ui.screens.FocusRoute
+import com.nightwise.timewise.ui.screens.FrictionSetupRoute
 import com.nightwise.timewise.ui.screens.HomeScreen
 import com.nightwise.timewise.ui.screens.PermissionActions
 import com.nightwise.timewise.ui.screens.PermissionsScreen
@@ -74,7 +78,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail, Features }
+private enum class Route {
+    Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail, Features,
+    AppLimitPicker, FrictionSetup, Awareness
+}
 
 private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
     save = { stack -> stack.map { it.name } },
@@ -109,7 +116,8 @@ class MainActivity : ComponentActivity() {
 
         val actions = PermissionActions(
             requestUsageAccess = { PermissionUtils.openUsageAccessSettings(this) },
-            requestNotifications = ::requestNotifications
+            requestNotifications = ::requestNotifications,
+            requestAccessibility = { PermissionUtils.openAccessibilitySettings(this) }
         )
 
         setContent {
@@ -161,6 +169,8 @@ private fun TimeWiseApp(
     val badgeRecords by badges.records.collectAsState()
     val journey = remember { JourneyRepository.get(context) }
     val journeyState by journey.state.collectAsState()
+    val appLimits = remember { AppLimitRepository.get(context) }
+    val limitsState by appLimits.state.collectAsState()
     LaunchedEffect(permissions) { journey.notePermissions(permissions) }
 
     val usage by produceState<UsageSnapshot?>(null, permissions.usageAccess) {
@@ -253,6 +263,21 @@ private fun TimeWiseApp(
 
                 Route.Features -> FeaturesScreen(onBack = ::pop)
 
+                Route.AppLimitPicker -> AppLimitPickerScreen(
+                    state = limitsState,
+                    todayApps = usage?.today?.apps.orEmpty(),
+                    onSetLimit = appLimits::setLimit,
+                    onRemoveLimit = appLimits::removeLimit,
+                    onBack = ::pop
+                )
+
+                Route.FrictionSetup -> FrictionSetupRoute(
+                    onOpenAwareness = { navigate(Route.Awareness) },
+                    onBack = ::pop
+                )
+
+                Route.Awareness -> AwarenessScreen(dailyAverageMillis = profile?.dailyAverageMillis, onBack = ::pop)
+
                 Route.Reports -> ReportsScreen(
                     usage = usage,
                     challengeHistory = challengeState.history,
@@ -303,8 +328,15 @@ private fun TimeWiseApp(
                             Tab.Focus -> FocusRoute(
                                 usageAccessGranted = permissions.usageAccess,
                                 notificationsGranted = permissions.notifications,
+                                accessibilityEnabled = permissions.accessibility,
+                                todayApps = usage?.today?.apps.orEmpty(),
                                 onAllowUsageAccess = actions.requestUsageAccess,
-                                onAllowNotifications = actions.requestNotifications
+                                onAllowNotifications = actions.requestNotifications,
+                                onEnableAccessibility = actions.requestAccessibility,
+                                onOpenAppInfo = { PermissionUtils.openAppDetails(context) },
+                                onOpenLimitPicker = { navigate(Route.AppLimitPicker) },
+                                onOpenFrictionSetup = { navigate(Route.FrictionSetup) },
+                                onOpenAwareness = { navigate(Route.Awareness) }
                             )
 
                             Tab.Stats -> StatsScreen(

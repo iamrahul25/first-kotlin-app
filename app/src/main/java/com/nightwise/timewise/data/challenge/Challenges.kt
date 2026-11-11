@@ -4,12 +4,14 @@ enum class ChallengeType(
     val label: String,
     val durationMillis: Long,
     /** Screen time in other apps allowed before the challenge fails. */
-    val graceMillis: Long,
-    val available: Boolean
+    val graceMillis: Long
 ) {
-    ONE_HOUR("1-hour focus", 60 * MINUTE, 5 * MINUTE, available = true),
-    EIGHT_HOURS("8-hour focus", 8 * 60 * MINUTE, 30 * MINUTE, available = false),
-    ONE_DAY("1-day detox", 24 * 60 * MINUTE, 60 * MINUTE, available = false);
+    ONE_HOUR("1-hour focus", 60 * MINUTE, 5 * MINUTE),
+    EIGHT_HOURS("8-hour focus", 8 * 60 * MINUTE, 30 * MINUTE),
+    ONE_DAY("1-day detox", 24 * 60 * MINUTE, 60 * MINUTE);
+
+    val durationMinutes: Int get() = (durationMillis / MINUTE).toInt()
+    val graceMinutes: Int get() = (graceMillis / MINUTE).toInt()
 
     companion object {
         fun fromName(name: String?): ChallengeType? = entries.firstOrNull { it.name == name }
@@ -20,6 +22,11 @@ private const val MINUTE = 60_000L
 
 data class ActiveChallenge(val type: ChallengeType, val startAt: Long) {
     val endAt: Long get() = startAt + type.durationMillis
+
+    fun remainingMillis(now: Long): Long = (endAt - now).coerceIn(0L, type.durationMillis)
+
+    /** Share of the challenge already behind you, 0 to 1. */
+    fun elapsedFraction(now: Long): Float = 1f - remainingMillis(now).toFloat() / type.durationMillis
 }
 
 data class ChallengeResult(

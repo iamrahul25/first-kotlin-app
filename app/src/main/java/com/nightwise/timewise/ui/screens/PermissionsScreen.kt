@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Accessibility
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.QueryStats
@@ -48,7 +49,8 @@ import com.nightwise.timewise.ui.theme.Slate
 
 class PermissionActions(
     val requestUsageAccess: () -> Unit,
-    val requestNotifications: () -> Unit
+    val requestNotifications: () -> Unit,
+    val requestAccessibility: () -> Unit
 )
 
 @Composable
@@ -106,6 +108,16 @@ fun PermissionsScreen(
                     description = "Sends your bedtime reminder.",
                     granted = status.notifications,
                     onAllow = actions.requestNotifications
+                )
+                PermissionRow(
+                    icon = Icons.Rounded.Accessibility,
+                    tint = Forest,
+                    tileColor = Mint,
+                    title = "Accessibility",
+                    tag = "(For app limits)",
+                    description = "Closes an app when its daily limit runs out. TimeWise only sees which app is open, never what's on screen.",
+                    granted = status.accessibility,
+                    onAllow = actions.requestAccessibility
                 )
             }
 

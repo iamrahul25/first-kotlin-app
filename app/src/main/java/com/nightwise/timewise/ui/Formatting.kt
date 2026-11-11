@@ -19,6 +19,27 @@ fun formatDuration(millis: Long): String {
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
 }
 
+/** A ticking timer: "59:12" or "7:02:03", rounding up so it reads 0:00 only when time is up. */
+fun formatCountdown(millis: Long): String {
+    val totalSeconds = (millis + 999) / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    val mmss = "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
+    return if (hours > 0) "$hours:$mmss" else mmss
+}
+
+/** A limit in minutes: "45m", "1h", "1h 30m". */
+fun formatLimitMinutes(minutes: Int): String {
+    val hours = minutes / 60
+    val rest = minutes % 60
+    return when {
+        hours == 0 -> "${rest}m"
+        rest == 0 -> "${hours}h"
+        else -> "${hours}h ${rest}m"
+    }
+}
+
 /** Local clock time in the user's 12/24-hour preference. */
 fun formatTime(context: Context, millis: Long): String = DateFormat.getTimeFormat(context).format(millis)
 

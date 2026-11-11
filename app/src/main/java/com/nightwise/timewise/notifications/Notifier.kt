@@ -47,6 +47,42 @@ object Notifier {
         }
     }
 
+    /** A silent, sticky notification whose timer counts down to [endAt] by itself. */
+    @SuppressLint("MissingPermission")
+    fun postCountdown(context: Context, channel: Channel, id: Int, title: String, message: String, endAt: Long) {
+        if (!PermissionUtils.hasNotificationPermission(context)) return
+        ensureChannel(context, channel)
+
+        val openApp = PendingIntent.getActivity(
+            context,
+            0,
+            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val notification = NotificationCompat.Builder(context, channel.id)
+            .setSmallIcon(R.drawable.ic_logo)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(openApp)
+            .setOngoing(true)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
+            .setWhen(endAt)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+            .setTimeoutAfter((endAt - System.currentTimeMillis()).coerceAtLeast(1L))
+            .build()
+
+        try {
+            NotificationManagerCompat.from(context).notify(id, notification)
+        } catch (_: SecurityException) {
+        }
+    }
+
+    fun cancel(context: Context, id: Int) = NotificationManagerCompat.from(context).cancel(id)
+
     private fun ensureChannel(context: Context, channel: Channel) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = context.getSystemService(NotificationManager::class.java)

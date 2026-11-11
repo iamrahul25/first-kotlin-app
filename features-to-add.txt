@@ -15,6 +15,9 @@ Like:
 So, all 6 things one by one to allow user extra 15 min. 
 Do proper setting up of these things and later also user can set-it up. 
 
+- Add a proper quotes, info, to add some good input to mind to keep motivate user to do something stop wasting time. 
+Understand the dopamine, how dopamine work, dopmine crash, and overlife effect. 
+
 
 Features added: 
 --------------

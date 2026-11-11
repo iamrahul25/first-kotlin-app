@@ -12,6 +12,7 @@ import com.nightwise.timewise.data.challenge.ChallengeRepository
 import com.nightwise.timewise.notifications.Channel
 import com.nightwise.timewise.notifications.Notifier
 import com.nightwise.timewise.ui.formatDuration
+import com.nightwise.timewise.ui.formatLimitMinutes
 import kotlin.concurrent.thread
 
 object ChallengeScheduler {
@@ -19,17 +20,31 @@ object ChallengeScheduler {
     private const val ACTION_CHALLENGE_END = "com.nightwise.timewise.action.CHALLENGE_END"
     private const val REQUEST_CODE = 7002
     private const val NOTIFICATION_ID = 44
+    private const val COUNTDOWN_NOTIFICATION_ID = 45
 
+    /** Sets the end-of-challenge alarm and shows the time left in the notification shade. */
     fun schedule(context: Context, active: ActiveChallenge) {
-        val alarms = context.getSystemService(AlarmManager::class.java) ?: return
-        alarms.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, active.endAt, endIntent(context))
+        context.getSystemService(AlarmManager::class.java)
+            ?.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, active.endAt, endIntent(context))
+        if (active.endAt > System.currentTimeMillis()) {
+            Notifier.postCountdown(
+                context,
+                Channel.CHALLENGES,
+                COUNTDOWN_NOTIFICATION_ID,
+                title = "${active.type.label} in progress",
+                message = "Stay off your phone. Up to ${formatLimitMinutes(active.type.graceMinutes)} in other apps is OK.",
+                endAt = active.endAt
+            )
+        }
     }
 
     fun cancel(context: Context) {
         context.getSystemService(AlarmManager::class.java)?.cancel(endIntent(context))
+        Notifier.cancel(context, COUNTDOWN_NOTIFICATION_ID)
     }
 
     fun notifyOutcome(context: Context, outcome: ChallengeOutcome) {
+        Notifier.cancel(context, COUNTDOWN_NOTIFICATION_ID)
         val type = outcome.result.type
         val title = if (outcome.result.success) "You did it! ${type.label} complete" else "${type.label} ended early"
         val details = if (outcome.result.success) {

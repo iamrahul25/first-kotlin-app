@@ -28,6 +28,8 @@ import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +58,7 @@ import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.UsageAccessCard
 import com.nightwise.timewise.ui.components.focusCard
 import com.nightwise.timewise.ui.components.rememberAppInfo
+import com.nightwise.timewise.ui.formatCountdown
 import com.nightwise.timewise.ui.formatDuration
 import com.nightwise.timewise.ui.theme.Forest
 import com.nightwise.timewise.ui.theme.ForestDeep
@@ -63,6 +66,7 @@ import com.nightwise.timewise.ui.theme.Ink
 import com.nightwise.timewise.ui.theme.Mint
 import com.nightwise.timewise.ui.theme.Mist
 import com.nightwise.timewise.ui.theme.Slate
+import kotlinx.coroutines.delay
 import java.util.Calendar
 
 private const val TOP_APPS = 5
@@ -157,6 +161,12 @@ fun HomeScreen(
 
 @Composable
 private fun FocusTeaser(activeChallenge: ActiveChallenge?, onClick: () -> Unit) {
+    val now by produceState(System.currentTimeMillis(), activeChallenge) {
+        while (activeChallenge != null) {
+            value = System.currentTimeMillis()
+            delay(1_000L)
+        }
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -174,10 +184,16 @@ private fun FocusTeaser(activeChallenge: ActiveChallenge?, onClick: () -> Unit) 
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                text = if (activeChallenge != null) "Stay off your phone until it ends." else "Put the phone down for 1 hour and earn badges.",
+                text = if (activeChallenge != null) "Stay off your phone until it ends." else "1 hour, 8 hours or a full day off your phone. Earn badges.",
                 color = Slate,
                 fontSize = 11.sp
             )
+        }
+        if (activeChallenge != null) {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(text = formatCountdown(activeChallenge.remainingMillis(now)), color = Forest, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                Text(text = "left", color = Slate, fontSize = 10.sp)
+            }
         }
         Image(
             painter = painterResource(R.drawable.ic_chevron_right),

@@ -1,5 +1,6 @@
 package com.nightwise.timewise.ui.screens
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,7 +54,14 @@ import com.nightwise.timewise.data.challenge.ChallengeRepository
 import com.nightwise.timewise.data.challenge.ChallengeResult
 import com.nightwise.timewise.data.challenge.ChallengeState
 import com.nightwise.timewise.data.challenge.ChallengeType
+import com.nightwise.timewise.data.friction.FrictionLogic
+import com.nightwise.timewise.data.friction.FrictionRepository
+import com.nightwise.timewise.data.friction.FrictionStep
+import com.nightwise.timewise.data.limits.AppLimitRepository
+import com.nightwise.timewise.data.limits.LimitLogic
+import com.nightwise.timewise.data.usage.AppUsage
 import com.nightwise.timewise.ui.components.AppIcon
+import com.nightwise.timewise.ui.components.LimitDialog
 import com.nightwise.timewise.ui.components.OutlineButton
 import com.nightwise.timewise.ui.components.PrimaryButton
 import com.nightwise.timewise.ui.components.ScreenHeader
@@ -60,11 +69,14 @@ import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.UsageAccessCard
 import com.nightwise.timewise.ui.components.focusCard
 import com.nightwise.timewise.ui.components.rememberAppInfo
+import com.nightwise.timewise.ui.formatCountdown
 import com.nightwise.timewise.ui.formatDuration
+import com.nightwise.timewise.ui.formatLimitMinutes
 import com.nightwise.timewise.ui.formatTime
 import com.nightwise.timewise.ui.relativeDayLabel
 import com.nightwise.timewise.ui.theme.Amber
 import com.nightwise.timewise.ui.theme.AmberTint
+import com.nightwise.timewise.ui.theme.CardWhite
 import com.nightwise.timewise.ui.theme.Forest
 import com.nightwise.timewise.ui.theme.Ink
 import com.nightwise.timewise.ui.theme.Mint
@@ -88,12 +100,23 @@ private const val RECENT_RESULTS = 5
 fun FocusRoute(
     usageAccessGranted: Boolean,
     notificationsGranted: Boolean,
+    accessibilityEnabled: Boolean,
+    todayApps: List<AppUsage>,
     onAllowUsageAccess: () -> Unit,
-    onAllowNotifications: () -> Unit
+    onAllowNotifications: () -> Unit,
+    onEnableAccessibility: () -> Unit,
+    onOpenAppInfo: () -> Unit,
+    onOpenLimitPicker: () -> Unit,
+    onOpenFrictionSetup: () -> Unit,
+    onOpenAwareness: () -> Unit
 ) {
     val context = LocalContext.current
     val repository = remember { ChallengeRepository.get(context) }
     val state by repository.state.collectAsState()
+    val limitsRepository = remember { AppLimitRepository.get(context) }
+    val limits by limitsRepository.state.collectAsState()
+    val frictionContent by remember { FrictionRepository.get(context) }.content.collectAsState()
+    var editingLimit by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var progress by remember { mutableStateOf<ChallengeProgress?>(null) }
@@ -141,10 +164,35 @@ fun FocusRoute(
                 ChallengeScheduler.cancel(context)
                 outcome = ended
             }
+        },
+        appLimits = {
+            AppLimitsSection(
+                state = limits,
+                todayApps = todayApps,
+                accessibilityEnabled = accessibilityEnabled,
+                frictionReadySteps = FrictionStep.entries.count { FrictionLogic.isReady(it, frictionContent) },
+                frictionTotalSteps = FrictionStep.entries.size,
+                onToggleEnabled = limitsRepository::setEnabled,
+                onAddLimit = onOpenLimitPicker,
+                onEditLimit = { editingLimit = it },
+                onEnableAccessibility = onEnableAccessibility,
+                onOpenAppInfo = onOpenAppInfo,
+                onOpenFrictionSetup = onOpenFrictionSetup,
+                onOpenAwareness = onOpenAwareness
+            )
         }
     )
 
     outcome?.let { OutcomeDialog(it, onDismiss = { outcome = null }) }
+    editingLimit?.let { pkg ->
+        LimitDialog(
+            packageName = pkg,
+            initialMinutes = limits.limitFor(pkg)?.minutes ?: LimitLogic.DEFAULT_LIMIT_MINUTES,
+            onSave = { limitsRepository.setLimit(pkg, it) },
+            onRemove = { limitsRepository.removeLimit(pkg) },
+            onDismiss = { editingLimit = null }
+        )
+    }
 }
 
 @Composable
@@ -157,7 +205,8 @@ fun FocusScreen(
     onAllowUsageAccess: () -> Unit,
     onAllowNotifications: () -> Unit,
     onStart: (ChallengeType) -> Unit,
-    onGiveUp: () -> Unit
+    onGiveUp: () -> Unit,
+    appLimits: @Composable () -> Unit = {}
 ) {
     val today = FocusRepository.currentEpochDay(now)
     Column(
@@ -188,10 +237,12 @@ fun FocusScreen(
                         .padding(12.dp)
                 )
             }
-        } else {
-            SectionTitle("Challenges")
-            ChallengeType.entries.forEach { type -> ChallengeCard(type, onStart = { onStart(type) }) }
         }
+        SectionTitle("Challenges")
+        ChallengeType.entries.forEach { type -> ChallengeCard(type, active, now, onStart = { onStart(type) }) }
+
+        SectionTitle("App limits")
+        appLimits()
 
         Row(
             modifier = Modifier
@@ -231,8 +282,9 @@ fun FocusScreen(
 
 @Composable
 private fun ActiveChallengeCard(active: ActiveChallenge, now: Long, progress: ChallengeProgress?, onGiveUp: () -> Unit) {
-    val remaining = (active.endAt - now).coerceAtLeast(0L)
-    val elapsedFraction = 1f - remaining.toFloat() / active.type.durationMillis
+    val context = LocalContext.current
+    val remaining = active.remainingMillis(now)
+    val elapsedFraction = active.elapsedFraction(now)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -256,7 +308,13 @@ private fun ActiveChallengeCard(active: ActiveChallenge, now: Long, progress: Ch
             }
         }
         Text(
-            text = "Put your phone down. More than ${formatDuration(active.type.graceMillis)} in other apps ends the challenge.",
+            text = "Ends ${endLabel(context, active.endAt, now)}",
+            color = Ink,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = "Put your phone down. More than ${formatLimitMinutes(active.type.graceMinutes)} in other apps ends the challenge.",
             color = Slate,
             fontSize = 12.sp,
             lineHeight = 17.sp,
@@ -307,40 +365,83 @@ private fun DistractionMeter(progress: ChallengeProgress?, graceMillis: Long) {
     }
 }
 
+/** One challenge: startable, running with its countdown, or waiting while another one runs. */
 @Composable
-private fun ChallengeCard(type: ChallengeType, onStart: () -> Unit) {
+private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Long, onStart: () -> Unit) {
+    val context = LocalContext.current
+    val running = active?.type == type
+    val blocked = active != null && !running
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .focusCard()
+            .focusCard(background = if (running) Mint else CardWhite, bordered = !running)
             .padding(horizontal = 14.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(text = type.label, color = if (type.available) Ink else Mist, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(text = type.label, color = if (blocked) Mist else Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "Stay off your phone for ${formatDuration(type.durationMillis)}. Up to ${formatDuration(type.graceMillis)} in other apps is OK.",
+                    text = "Stay off your phone for ${formatLimitMinutes(type.durationMinutes)}. Up to ${formatLimitMinutes(type.graceMinutes)} in other apps is OK.",
                     color = Slate,
                     fontSize = 12.sp,
                     lineHeight = 17.sp
                 )
             }
-            if (!type.available) {
+            if (running) {
                 Text(
-                    text = "Soon",
+                    text = "Running",
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(NeutralChip)
+                        .background(Forest)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
-                    color = Slate,
+                    color = Color.White,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
-        if (type.available) PrimaryButton(text = "Start", onClick = onStart, showArrow = true)
+        when {
+            active != null && running -> {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(text = "Time left", color = Slate, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Text(text = formatCountdown(active.remainingMillis(now)), color = Forest, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text(text = "Ends ${endLabel(context, active.endAt, now)}", color = Slate, fontSize = 12.sp)
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color.White)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(active.elapsedFraction(now).coerceIn(0.02f, 1f))
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(Forest)
+                    )
+                }
+            }
+            blocked -> Text(
+                text = "One challenge at a time. Finish or give up the ${active.type.label} first.",
+                color = Mist,
+                fontSize = 12.sp,
+                lineHeight = 17.sp
+            )
+            else -> PrimaryButton(text = "Start", onClick = onStart, showArrow = true)
+        }
     }
+}
+
+/** "at 7:42 PM", or "tomorrow at 7:42 PM" for challenges that run past midnight. */
+private fun endLabel(context: Context, endAt: Long, now: Long): String {
+    val days = FocusRepository.currentEpochDay(endAt) - FocusRepository.currentEpochDay(now)
+    val time = formatTime(context, endAt)
+    return if (days > 0) "tomorrow at $time" else "at $time"
 }
 
 @Composable
@@ -456,14 +557,4 @@ private fun OutcomeDialog(outcome: ChallengeOutcome, onDismiss: () -> Unit) {
             Text(details + badges)
         }
     )
-}
-
-/** "59:12" or "1:02:03". */
-private fun formatCountdown(millis: Long): String {
-    val totalSeconds = (millis + 999) / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-    val mmss = "${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}"
-    return if (hours > 0) "$hours:$mmss" else mmss
 }

@@ -3,30 +3,52 @@ package com.nightwise.timewise.permissions
 import android.Manifest
 import android.app.AppOpsManager
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.nightwise.timewise.limits.AppLimitService
 
 data class PermissionStatus(
     val usageAccess: Boolean = false,
-    val notifications: Boolean = false
+    val notifications: Boolean = false,
+    /** The app limit service, which closes apps once their time is up. */
+    val accessibility: Boolean = false
 ) {
-    val grantedCount: Int get() = listOf(usageAccess, notifications).count { it }
-    val totalCount: Int get() = 2
+    val grantedCount: Int get() = listOf(usageAccess, notifications, accessibility).count { it }
+    val totalCount: Int get() = 3
 }
 
 object PermissionUtils {
 
     fun check(context: Context) = PermissionStatus(
         usageAccess = hasUsageAccess(context),
-        notifications = hasNotificationPermission(context)
+        notifications = hasNotificationPermission(context),
+        accessibility = hasAccessibilityService(context)
     )
+
+    fun hasAccessibilityService(context: Context): Boolean {
+        val enabled = Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            ?: return false
+        val expected = ComponentName(context, AppLimitService::class.java)
+        return enabled.split(':').any { ComponentName.unflattenFromString(it) == expected }
+    }
+
+    /** Opens Accessibility settings, scrolled to TimeWise where the device supports it. */
+    fun openAccessibilitySettings(context: Context) {
+        val component = ComponentName(context, AppLimitService::class.java).flattenToString()
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            .putExtra(EXTRA_FRAGMENT_ARG_KEY, component)
+            .putExtra(EXTRA_SHOW_FRAGMENT_ARGUMENTS, Bundle().apply { putString(EXTRA_FRAGMENT_ARG_KEY, component) })
+        context.launch(intent)
+    }
 
     fun hasNotificationPermission(context: Context): Boolean {
         val runtimeGranted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -76,4 +98,7 @@ object PermissionUtils {
     } catch (_: SecurityException) {
         false
     }
+
+    private const val EXTRA_FRAGMENT_ARG_KEY = ":settings:fragment_args_key"
+    private const val EXTRA_SHOW_FRAGMENT_ARGUMENTS = ":settings:show_fragment_args"
 }
