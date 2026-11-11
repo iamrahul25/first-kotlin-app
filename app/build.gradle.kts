@@ -11,7 +11,7 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.nightwise.scrollguard"
+    namespace = "com.nightwise.timewise"
     compileSdk = 35
 
     signingConfigs {
@@ -26,7 +26,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.nightwise.scrollguard"
+        applicationId = "com.nightwise.timewise"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

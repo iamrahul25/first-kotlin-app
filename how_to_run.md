@@ -22,14 +22,14 @@ cd "c:/all-projects/first-kotlin-app"
 ## 3) Launch the app manually
 
 ```bash
-adb shell am start -n com.nightwise.scrollguard/com.nightwise.scrollguard.MainActivity
+adb shell am start -n com.nightwise.timewise/com.nightwise.timewise.MainActivity
 ```
 
 ## 4) Optional: build + install + launch in one command
 
 ```bash
 cd "c:/all-projects/first-kotlin-app"
-./gradlew installDebug && adb shell am start -n com.nightwise.scrollguard/com.nightwise.scrollguard.MainActivity
+./gradlew installDebug && adb shell am start -n com.nightwise.timewise/com.nightwise.timewise.MainActivity
 ```
 
 ## 5) If you want to inspect the app logs
@@ -38,16 +38,14 @@ cd "c:/all-projects/first-kotlin-app"
 adb logcat
 ```
 
-Useful filters while testing the accessibility service:
+## 6) Usage Access permission for the app
+
+The first launch walks through onboarding. Tap **Allow** next to Usage Access, turn on
+"Permit usage access" for TimeWise, then return to the app. Screen time, apps, unlocks
+and the sleep log all depend on it.
+
+To grant it from the command line on an emulator:
 
 ```bash
-adb logcat | grep -i "reel\|shorts\|accessibility"
+adb shell appops set com.nightwise.timewise GET_USAGE_STATS allow
 ```
-
-## 6) Accessibility permission for the app
-
-After installing the app on the emulator, go to:
-
-Settings > Accessibility > Installed apps > Reel Blocker
-
-Turn on the service, then return to the app and test the detection flow.

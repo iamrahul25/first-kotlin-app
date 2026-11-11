@@ -1,0 +1,25 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Stopwatch crown -->
+    <path
+        android:fillColor="#FAF7F0"
+        android:pathData="M51,24h6a2,2 0,0 1,2 2v2.5h-10v-2.5a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#FAF7F0"
+        android:pathData="M52.25,27h3.5v5h-3.5z" />
+    <!-- Stopwatch ring -->
+    <path
+        android:strokeColor="#FAF7F0"
+        android:strokeWidth="5.5"
+        android:pathData="M54,33a21,21 0,1 1,0 42a21,21 0,1 1,0 -42z" />
+    <!-- Check mark: time well spent -->
+    <path
+        android:strokeColor="#8FD9A8"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M44.5,54.5L51.5,61.5L64,47" />
+</vector>

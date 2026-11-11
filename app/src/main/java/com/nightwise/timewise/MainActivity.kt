@@ -1,0 +1,279 @@
+package com.nightwise.timewise
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.graphics.Color as AndroidColor
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.nightwise.timewise.bedtime.BedtimeScheduler
+import com.nightwise.timewise.challenge.ChallengeScheduler
+import com.nightwise.timewise.data.FocusRepository
+import com.nightwise.timewise.data.FocusSettings
+import com.nightwise.timewise.data.challenge.ChallengeRepository
+import com.nightwise.timewise.data.usage.ScreenTimeRepository
+import com.nightwise.timewise.data.usage.UsageSnapshot
+import com.nightwise.timewise.permissions.PermissionStatus
+import com.nightwise.timewise.permissions.PermissionUtils
+import com.nightwise.timewise.ui.components.FocusBottomNav
+import com.nightwise.timewise.ui.components.Tab
+import com.nightwise.timewise.ui.screens.AppsScreen
+import com.nightwise.timewise.ui.screens.BedtimeScreen
+import com.nightwise.timewise.ui.screens.FocusRoute
+import com.nightwise.timewise.ui.screens.HomeScreen
+import com.nightwise.timewise.ui.screens.PermissionActions
+import com.nightwise.timewise.ui.screens.PermissionsScreen
+import com.nightwise.timewise.ui.screens.ReportsScreen
+import com.nightwise.timewise.ui.screens.SettingsScreen
+import com.nightwise.timewise.ui.screens.SplashScreen
+import com.nightwise.timewise.ui.screens.StatsScreen
+import com.nightwise.timewise.ui.theme.Cream
+import com.nightwise.timewise.ui.theme.TimeWiseTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+
+private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports }
+
+private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
+    save = { stack -> stack.map { it.name } },
+    restore = { names -> names.map(Route::valueOf).toMutableStateList() }
+)
+
+private const val USAGE_REFRESH_MS = 60_000L
+
+class MainActivity : ComponentActivity() {
+
+    private lateinit var repository: FocusRepository
+    private var permissionStatus by mutableStateOf(PermissionStatus())
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            refreshPermissions()
+            val permanentlyDenied = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                !shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
+            if (!granted && permanentlyDenied) PermissionUtils.openNotificationSettings(this)
+        }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.TRANSPARENT, AndroidColor.TRANSPARENT)
+        )
+        repository = FocusRepository.get(this)
+        refreshPermissions()
+        BedtimeScheduler.sync(this)
+
+        val actions = PermissionActions(
+            requestUsageAccess = { PermissionUtils.openUsageAccessSettings(this) },
+            requestNotifications = ::requestNotifications
+        )
+
+        setContent {
+            TimeWiseTheme {
+                TimeWiseApp(
+                    repository = repository,
+                    permissions = permissionStatus,
+                    actions = actions
+                )
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshPermissions()
+    }
+
+    private fun refreshPermissions() {
+        permissionStatus = PermissionUtils.check(this)
+    }
+
+    private fun requestNotifications() {
+        val needsRuntimeRequest = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsRuntimeRequest) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            PermissionUtils.openNotificationSettings(this)
+        }
+    }
+}
+
+@Composable
+private fun TimeWiseApp(
+    repository: FocusRepository,
+    permissions: PermissionStatus,
+    actions: PermissionActions
+) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val settings by repository.settings.collectAsState()
+    val screenTime = remember { ScreenTimeRepository(context.applicationContext) }
+
+    val challenges = remember { ChallengeRepository.get(context) }
+    val challengeState by challenges.state.collectAsState()
+
+    val usage by produceState<UsageSnapshot?>(null, permissions.usageAccess) {
+        lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                value = withContext(Dispatchers.IO) { screenTime.load() }
+                val ended = withContext(Dispatchers.IO) { challenges.evaluate() }
+                if (ended != null) {
+                    ChallengeScheduler.cancel(context)
+                    ChallengeScheduler.notifyOutcome(context, ended)
+                }
+                delay(USAGE_REFRESH_MS)
+            }
+        }
+    }
+
+    val backStack = rememberSaveable(saver = RouteStackSaver) {
+        mutableListOf(if (settings.onboardingDone) Route.Main else Route.Splash).toMutableStateList()
+    }
+    var tab by rememberSaveable { mutableStateOf(Tab.Home) }
+    var appsDay by rememberSaveable { mutableLongStateOf(FocusRepository.currentEpochDay()) }
+
+    val currentRoute = backStack.last()
+    fun navigate(route: Route) = backStack.add(route)
+    fun pop() {
+        if (backStack.size > 1) backStack.removeAt(backStack.lastIndex)
+    }
+    val openApps: (Long) -> Unit = { day ->
+        appsDay = day
+        navigate(Route.Apps)
+    }
+    val updateSettings: (FocusSettings) -> Unit = { updated ->
+        repository.updateSettings { updated }
+        BedtimeScheduler.sync(context, updated)
+    }
+
+    BackHandler(enabled = backStack.size > 1 || (currentRoute == Route.Main && tab != Tab.Home)) {
+        if (backStack.size > 1) pop() else tab = Tab.Home
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Cream)
+            .statusBarsPadding()
+    ) {
+        Crossfade(targetState = currentRoute, label = "route") { route ->
+            when (route) {
+                Route.Splash -> SplashScreen(onGetStarted = { navigate(Route.Onboarding) })
+
+                Route.Onboarding -> PermissionsScreen(
+                    status = permissions,
+                    actions = actions,
+                    isOnboarding = true,
+                    onBack = ::pop,
+                    onContinue = {
+                        repository.updateSettings { it.copy(onboardingDone = true) }
+                        backStack.clear()
+                        backStack.add(Route.Main)
+                    }
+                )
+
+                Route.Permissions -> PermissionsScreen(
+                    status = permissions,
+                    actions = actions,
+                    isOnboarding = false,
+                    onBack = ::pop,
+                    onContinue = ::pop
+                )
+
+                Route.Apps -> AppsScreen(day = usage?.day(appsDay), epochDay = appsDay, onBack = ::pop)
+
+                Route.Reports -> ReportsScreen(
+                    usage = usage,
+                    challengeHistory = challengeState.history,
+                    onBack = ::pop
+                )
+
+                Route.Main -> Column(modifier = Modifier.fillMaxSize()) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        when (tab) {
+                            Tab.Home -> HomeScreen(
+                                usage = usage,
+                                usageAccessGranted = permissions.usageAccess,
+                                activeChallenge = challengeState.active,
+                                onAllowUsageAccess = actions.requestUsageAccess,
+                                onOpenApps = openApps,
+                                onOpenFocus = { tab = Tab.Focus }
+                            )
+
+                            Tab.Focus -> FocusRoute(
+                                usageAccessGranted = permissions.usageAccess,
+                                notificationsGranted = permissions.notifications,
+                                onAllowUsageAccess = actions.requestUsageAccess,
+                                onAllowNotifications = actions.requestNotifications
+                            )
+
+                            Tab.Stats -> StatsScreen(
+                                usage = usage,
+                                usageAccessGranted = permissions.usageAccess,
+                                onAllowUsageAccess = actions.requestUsageAccess,
+                                onOpenApps = openApps,
+                                onOpenReports = { navigate(Route.Reports) }
+                            )
+
+                            Tab.Bedtime -> BedtimeScreen(
+                                settings = settings,
+                                sleepLog = usage?.sleepLog?.take(7),
+                                notificationsGranted = permissions.notifications,
+                                usageAccessGranted = permissions.usageAccess,
+                                onSettingsChange = updateSettings,
+                                onAllowNotifications = actions.requestNotifications,
+                                onAllowUsageAccess = actions.requestUsageAccess
+                            )
+
+                            Tab.Settings -> SettingsScreen(
+                                settings = settings,
+                                permissions = permissions,
+                                onOpenPermissions = { navigate(Route.Permissions) },
+                                onOpenBedtime = { tab = Tab.Bedtime }
+                            )
+                        }
+                    }
+                    FocusBottomNav(selected = tab, onSelect = { tab = it })
+                }
+            }
+        }
+    }
+}

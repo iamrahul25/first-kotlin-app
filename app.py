@@ -7,7 +7,7 @@ import sys
 import time
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-PACKAGE = "com.nightwise.scrollguard"
+PACKAGE = "com.nightwise.timewise"
 LAUNCH_COMPONENT = f"{PACKAGE}/{PACKAGE}.MainActivity"
 GRADLEW = os.path.join(PROJECT_DIR, "gradlew.bat" if os.name == "nt" else "gradlew")
 OUTPUTS_DIR = os.path.join(PROJECT_DIR, "app", "build", "outputs")
@@ -383,7 +383,7 @@ def ensure_signing():
             print("Passwords do not match.")
             return False
         key_password = store_password
-        owner = input("Your name or organization (shown in the certificate): ").strip() or "Reel Blocker"
+        owner = input("Your name or organization (shown in the certificate): ").strip() or "TimeWise"
         dname = "CN=" + owner.replace(",", "\\,")
 
         print(f"\n> keytool -genkeypair -keystore {DEFAULT_KEYSTORE} -alias {alias} ...")
@@ -424,7 +424,7 @@ def build_release(task, output):
     version_name, version_code = app_version()
     extension = os.path.splitext(output)[1]
     os.makedirs(RELEASE_DIR, exist_ok=True)
-    target = os.path.join(RELEASE_DIR, f"reel-blocker-v{version_name}-{version_code}{extension}")
+    target = os.path.join(RELEASE_DIR, f"timewise-v{version_name}-{version_code}{extension}")
     shutil.copy2(output, target)
     size_mb = os.path.getsize(target) / (1024 * 1024)
     print(f"\nCopied to {os.path.relpath(target, PROJECT_DIR)} ({size_mb:.1f} MB)")
@@ -557,7 +557,7 @@ MENU = [
 def main():
     actions = {key: action for key, _, action in MENU}
     while True:
-        print("\n=== Reel Blocker ===")
+        print("\n=== TimeWise ===")
         for key, label, _ in MENU:
             print(f"{key}. {label}")
 
