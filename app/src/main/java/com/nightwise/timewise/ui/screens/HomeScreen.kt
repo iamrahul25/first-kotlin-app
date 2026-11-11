@@ -50,6 +50,7 @@ import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.AppUsageRow
 import com.nightwise.timewise.ui.components.BadgesEntryCard
+import com.nightwise.timewise.ui.components.CategoryUsageCard
 import com.nightwise.timewise.ui.components.profileStyle
 import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.HourlyTimeline
@@ -85,7 +86,8 @@ fun HomeScreen(
     onOpenApp: (String) -> Unit,
     onOpenFocus: () -> Unit,
     onOpenBadges: () -> Unit,
-    onOpenProfile: () -> Unit
+    onOpenProfile: () -> Unit,
+    onOpenCategories: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -146,6 +148,8 @@ fun HomeScreen(
             }
         }
         TopAppsCard(usage, onOpenApp)
+
+        CategoryUsageCard(apps = usage?.today?.apps, onViewAll = onOpenCategories)
 
         SectionTitle("Today's Timeline")
         HourlyTimeline(

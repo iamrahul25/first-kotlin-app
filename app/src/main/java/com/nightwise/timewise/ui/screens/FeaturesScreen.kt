@@ -68,6 +68,7 @@ private val FeatureGroups = listOf(
         "Screen time", Icons.Rounded.PhoneAndroid, Forest, Mint, listOf(
             Feature("Today's screen time", "Total time today vs yesterday, with a small meter showing today's level and time left before the next one.", "Home"),
             Feature("Most used apps", "Every app you used, ranked, with icons and time.", "Home · Stats"),
+            Feature("Usage by category", "Social, video & music, games, browsing, productivity: today, 7 or 30 days. Move any app to another category.", "Home"),
             Feature("Unlocks", "How many times you unlocked your phone (Android 9+).", "Home · Stats"),
             Feature("Hourly timeline", "When in the day you used your phone, with the busiest hour.", "Home · Stats"),
             Feature("Week & month charts", "Daily bars for 7 or 30 days. Tap a day to see its apps.", "Stats"),
@@ -90,7 +91,7 @@ private val FeatureGroups = listOf(
     ),
     FeatureGroup(
         "Badges", Icons.Rounded.EmojiEvents, Amber, AmberTint, listOf(
-            Feature("Achievements", "15 badges from Bronze to Legendary, like Zen Master and Digital Monk.", "Badges"),
+            Feature("Hall of Fame", "15 badges from Bronze to Legendary, like Zen Master and Digital Monk.", "Badges"),
             Feature("Hall of Shame", "11 warning badges, like Screen Addict and Doom Spiral, plus your recent form.", "Badges"),
             Feature("Win counts & progress", "How many times you've earned each badge, and how close you are today.", "Badges")
         )

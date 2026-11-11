@@ -60,6 +60,7 @@ import com.nightwise.timewise.ui.screens.AppInsightsScreen
 import com.nightwise.timewise.ui.screens.AppLimitPickerScreen
 import com.nightwise.timewise.ui.screens.AppsScreen
 import com.nightwise.timewise.ui.screens.AwarenessScreen
+import com.nightwise.timewise.ui.screens.CategoriesScreen
 import com.nightwise.timewise.ui.screens.BadgesScreen
 import com.nightwise.timewise.ui.screens.BedtimeScreen
 import com.nightwise.timewise.ui.screens.FeaturesScreen
@@ -81,7 +82,7 @@ import kotlinx.coroutines.withContext
 
 private enum class Route {
     Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail, Features,
-    AppLimitPicker, FrictionSetup, Awareness
+    AppLimitPicker, FrictionSetup, Awareness, Categories
 }
 
 private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
@@ -281,6 +282,8 @@ private fun TimeWiseApp(
                     onBack = ::pop
                 )
 
+                Route.Categories -> CategoriesScreen(usage = usage, onBack = ::pop)
+
                 Route.Awareness -> AwarenessScreen(dailyAverageMillis = profile?.dailyAverageMillis, onBack = ::pop)
 
                 Route.Reports -> ReportsScreen(
@@ -327,7 +330,8 @@ private fun TimeWiseApp(
                                 onOpenApp = openApp,
                                 onOpenFocus = { tab = Tab.Focus },
                                 onOpenBadges = { navigate(Route.Badges) },
-                                onOpenProfile = { navigate(Route.Profile) }
+                                onOpenProfile = { navigate(Route.Profile) },
+                                onOpenCategories = { navigate(Route.Categories) }
                             )
 
                             Tab.Focus -> FocusRoute(

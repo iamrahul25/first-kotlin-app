@@ -161,7 +161,7 @@ private fun KindToggle(selected: BadgeKind, records: Map<UsageBadge, BadgeRecord
         BadgeKind.entries.forEach { kind ->
             val isSelected = kind == selected
             val earned = UsageBadge.entries.count { it.kind == kind && records[it]?.earned == true }
-            val label = if (kind == BadgeKind.ACHIEVEMENT) "Achievements" else "Hall of Shame"
+            val label = if (kind == BadgeKind.ACHIEVEMENT) "Hall of Fame" else "Hall of Shame"
             Text(
                 text = "$label · $earned",
                 modifier = Modifier
@@ -196,7 +196,7 @@ private fun AchievementsHero(
 
     HeroCard(
         brush = Brush.linearGradient(listOf(ForestDeep, Forest)),
-        eyebrow = "ACHIEVEMENTS",
+        eyebrow = "HALL OF FAME",
         headline = "$unlocked / ${badges.size}",
         caption = "unlocked",
         fraction = unlocked.toFloat() / badges.size,
