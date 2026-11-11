@@ -1,21 +1,15 @@
 Features to add: 
 ---------------
 
-- Add a feature where we can do app wise analysis: meaning how much a app has wasted our time: 
-And we can see top weekly, monthly app used and it's total time wasted. 
-And can see top monthly time wasted apps. So, that we can add time on particular app accordingly. 
-
--> Eg: If we select a app say instagram: 
-- We can see how much total: a day, week, and monthy and so far we have wasted
-- what average time so, far
-- Daily usage of app graph
-
 - Add a option in Focus section: add individual limit on individual app
 And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
 
 Like: 
-1) Type the below text -> I still want to watch screen and make my life useless
-2) User can 
+1) Type the below text -> I still want to watch screen and make my life useless (Everytime random phrase) then on next comes next task
+2) User can select photos of family member, Photo of girlfriend, for whome they want to do something 
+3) Can there dream list what he/she want to achieve (write one dream to from the list to proceed next)
+4) 
+
 
 
 - In setting add features sections what feature in button points we have added so far. 
@@ -34,3 +28,9 @@ Features added:
   before vs last 7 days, a verdict (working / no change / worse), total time saved, unlocks
   before vs now, weekly chart against the starting point, and milestones: install date and
   when usage access and notifications were turned on. Settings shows "With TimeWise since".
+
+- App insights (Stats > App insights): Week / Month / All time ranking of the biggest
+  time-wasters with total, average a day, days used and trend vs the period before, plus a
+  "#1 time-waster" card. Tap any app (here, or in Home / Stats / Apps lists) for its detail:
+  time lost so far, today, this week (vs last week), last 30 days, daily average, a 7 / 30 day
+  daily graph, days opened, busiest day, share of screen time and days a year at this pace.

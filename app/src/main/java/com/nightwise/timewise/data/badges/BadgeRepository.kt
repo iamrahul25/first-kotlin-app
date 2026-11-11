@@ -22,7 +22,7 @@ data class BadgeRecord(
 }
 
 /**
- * Lifetime ledger of screen time badges. Saved history only reaches back about six months,
+ * Lifetime ledger of screen time badges. Saved history only reaches back about a year,
  * so wins are kept here once found and counts never go down.
  */
 class BadgeRepository private constructor(context: Context) {

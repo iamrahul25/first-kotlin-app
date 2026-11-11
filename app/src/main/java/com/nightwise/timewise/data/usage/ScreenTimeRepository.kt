@@ -142,8 +142,8 @@ class ScreenTimeRepository(private val context: Context) {
 
     companion object {
         const val HISTORY_DAYS = 14
-        /** Enough for six months of the monthly trend. */
-        const val LONG_HISTORY_DAYS = 180
+        /** A year: the monthly trend and the all-time app totals both read from it. */
+        const val LONG_HISTORY_DAYS = 365
         private const val HOUR_MS = 60 * 60 * 1000L
         /** Catches apps already open at the start of the first day. */
         private const val LOOKBACK_MS = 6 * HOUR_MS

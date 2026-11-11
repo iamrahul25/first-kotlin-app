@@ -133,9 +133,10 @@ class FocusRepository private constructor(context: Context) {
     companion object {
         private const val PREFS_NAME = "timewise"
         private const val DAY_PREFIX = "day_"
-        /** Long enough for the monthly graph planned for v2. */
+        /** A little over the year of history the app reads back. */
         private const val RETENTION_DAYS = 400
-        private const val STORED_APPS_PER_DAY = 10
+        /** Enough that app insights see more than just the day's favourites. */
+        private const val STORED_APPS_PER_DAY = 25
         private const val DAY_MS = 24L * 60 * 60 * 1000
 
         private const val KEY_ONBOARDING_DONE = "onboarding_done"

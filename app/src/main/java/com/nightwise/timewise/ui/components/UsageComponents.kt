@@ -81,10 +81,18 @@ fun AppIcon(info: AppInfo?, size: Dp = 36.dp) {
 
 /** App name, time and a bar scaled against the most used app. */
 @Composable
-fun AppUsageRow(packageName: String, millis: Long, maxMillis: Long, modifier: Modifier = Modifier) {
+fun AppUsageRow(
+    packageName: String,
+    millis: Long,
+    maxMillis: Long,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null
+) {
     val info = rememberAppInfo(packageName)
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick) else Modifier),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

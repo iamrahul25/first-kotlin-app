@@ -53,6 +53,8 @@ import com.nightwise.timewise.permissions.PermissionUtils
 import com.nightwise.timewise.snapshot.DailySnapshotScheduler
 import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
+import com.nightwise.timewise.ui.screens.AppDetailScreen
+import com.nightwise.timewise.ui.screens.AppInsightsScreen
 import com.nightwise.timewise.ui.screens.AppsScreen
 import com.nightwise.timewise.ui.screens.BadgesScreen
 import com.nightwise.timewise.ui.screens.BedtimeScreen
@@ -71,7 +73,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile }
+private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail }
 
 private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
     save = { stack -> stack.map { it.name } },
@@ -198,6 +200,11 @@ private fun TimeWiseApp(
         appsDay = day
         navigate(Route.Apps)
     }
+    var detailPackage by rememberSaveable { mutableStateOf("") }
+    val openApp: (String) -> Unit = { packageName ->
+        detailPackage = packageName
+        navigate(Route.AppDetail)
+    }
     val updateSettings: (FocusSettings) -> Unit = { updated ->
         repository.updateSettings { updated }
         BedtimeScheduler.sync(context, updated)
@@ -237,7 +244,11 @@ private fun TimeWiseApp(
                     onContinue = ::pop
                 )
 
-                Route.Apps -> AppsScreen(day = usage?.day(appsDay), epochDay = appsDay, onBack = ::pop)
+                Route.Apps -> AppsScreen(day = usage?.day(appsDay), epochDay = appsDay, onOpenApp = openApp, onBack = ::pop)
+
+                Route.AppInsights -> AppInsightsScreen(usage = usage, onOpenApp = openApp, onBack = ::pop)
+
+                Route.AppDetail -> AppDetailScreen(usage = usage, packageName = detailPackage, onBack = ::pop)
 
                 Route.Reports -> ReportsScreen(
                     usage = usage,
@@ -280,6 +291,7 @@ private fun TimeWiseApp(
                                 profile = profile?.profile,
                                 onAllowUsageAccess = actions.requestUsageAccess,
                                 onOpenApps = openApps,
+                                onOpenApp = openApp,
                                 onOpenFocus = { tab = Tab.Focus },
                                 onOpenBadges = { navigate(Route.Badges) },
                                 onOpenProfile = { navigate(Route.Profile) }
@@ -297,6 +309,8 @@ private fun TimeWiseApp(
                                 usageAccessGranted = permissions.usageAccess,
                                 onAllowUsageAccess = actions.requestUsageAccess,
                                 onOpenApps = openApps,
+                                onOpenApp = openApp,
+                                onOpenAppInsights = { navigate(Route.AppInsights) },
                                 badgeRecords = badgeRecords,
                                 onOpenReports = { navigate(Route.Reports) },
                                 onOpenBadges = { navigate(Route.Badges) }

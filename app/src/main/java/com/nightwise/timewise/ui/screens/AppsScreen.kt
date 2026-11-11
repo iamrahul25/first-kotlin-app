@@ -24,7 +24,7 @@ import com.nightwise.timewise.ui.theme.Slate
 
 /** Every app used on one day, most used first. */
 @Composable
-fun AppsScreen(day: DayUsage?, epochDay: Long, onBack: () -> Unit) {
+fun AppsScreen(day: DayUsage?, epochDay: Long, onOpenApp: (String) -> Unit, onBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -49,7 +49,12 @@ fun AppsScreen(day: DayUsage?, epochDay: Long, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             items(apps, key = { it.packageName }) { app ->
-                AppUsageRow(packageName = app.packageName, millis = app.millis, maxMillis = max)
+                AppUsageRow(
+                    packageName = app.packageName,
+                    millis = app.millis,
+                    maxMillis = max,
+                    onClick = { onOpenApp(app.packageName) }
+                )
             }
         }
     }

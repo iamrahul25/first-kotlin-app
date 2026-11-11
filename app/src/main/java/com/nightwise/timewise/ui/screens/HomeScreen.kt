@@ -70,6 +70,7 @@ fun HomeScreen(
     profile: UsageProfile?,
     onAllowUsageAccess: () -> Unit,
     onOpenApps: (Long) -> Unit,
+    onOpenApp: (String) -> Unit,
     onOpenFocus: () -> Unit,
     onOpenBadges: () -> Unit,
     onOpenProfile: () -> Unit
@@ -132,7 +133,7 @@ fun HomeScreen(
                 )
             }
         }
-        TopAppsCard(usage)
+        TopAppsCard(usage, onOpenApp)
 
         SectionTitle("Today's Timeline")
         HourlyTimeline(
@@ -295,7 +296,7 @@ private fun StatIcon(icon: ImageVector) {
 }
 
 @Composable
-private fun TopAppsCard(usage: UsageSnapshot?) {
+private fun TopAppsCard(usage: UsageSnapshot?, onOpenApp: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -313,7 +314,12 @@ private fun TopAppsCard(usage: UsageSnapshot?) {
         } else {
             val max = apps.first().millis
             apps.take(TOP_APPS).forEach { app ->
-                AppUsageRow(packageName = app.packageName, millis = app.millis, maxMillis = max)
+                AppUsageRow(
+                    packageName = app.packageName,
+                    millis = app.millis,
+                    maxMillis = max,
+                    onClick = { onOpenApp(app.packageName) }
+                )
             }
         }
     }
