@@ -25,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,6 +42,7 @@ import com.nightwise.timewise.ui.components.ScreenHeader
 import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.UsageAccessCard
 import com.nightwise.timewise.ui.components.focusCard
+import com.nightwise.timewise.ui.components.levelCardColors
 import com.nightwise.timewise.ui.components.profileStyle
 import com.nightwise.timewise.ui.formatDuration
 import com.nightwise.timewise.ui.theme.CardBorder
@@ -93,7 +93,6 @@ fun ProfileScreen(
             }
             else -> {
                 ProfileHero(summary)
-                journeyProgress?.let { JourneyCard(journey, it) }
                 GaugeCard(summary)
                 NextLevelCard(summary, onOpenFocus)
                 CostCard(summary)
@@ -108,6 +107,7 @@ fun ProfileScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
+                journeyProgress?.let { JourneyCard(journey, it) }
             }
         }
     }
@@ -115,22 +115,23 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileHero(summary: ProfileSummary) {
-    val style = profileStyle(summary.profile)
+    val colors = levelCardColors(summary.profile)
+    val content = colors.content
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Brush.linearGradient(listOf(style.dark, style.light)))
+            .background(colors.brush)
             .padding(horizontal = 18.dp, vertical = 22.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         ProfileAvatar(profile = summary.profile, size = 88.dp)
-        Text(text = "YOU ARE", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-        Text(text = summary.profile.title, color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.Bold)
+        Text(text = "YOU ARE", color = content.copy(alpha = 0.75f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+        Text(text = summary.profile.title, color = content, fontSize = 38.sp, fontWeight = FontWeight.Bold)
         Text(
             text = summary.profile.tagline,
-            color = Color.White.copy(alpha = 0.88f),
+            color = content.copy(alpha = 0.88f),
             fontSize = 13.sp,
             lineHeight = 19.sp,
             textAlign = TextAlign.Center
@@ -139,21 +140,21 @@ private fun ProfileHero(summary: ProfileSummary) {
             modifier = Modifier
                 .padding(top = 6.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color.White.copy(alpha = 0.14f))
+                .background(content.copy(alpha = 0.14f))
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "${formatDuration(summary.dailyAverageMillis)} a day",
-                color = Color.White,
+                color = content,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
             summary.previousDailyAverageMillis?.let { previous ->
                 val (change, trend) = changeVsPrevious(summary.dailyAverageMillis, previous)
                 ChangePill(text = change, trend = trend)
-                Text(text = "vs week before", color = Color.White.copy(alpha = 0.75f), fontSize = 11.sp)
+                Text(text = "vs week before", color = content.copy(alpha = 0.75f), fontSize = 11.sp)
             }
         }
     }

@@ -43,10 +43,21 @@ data class ProfileStyle(val light: Color, val dark: Color, val tint: Color, val 
 
 fun profileStyle(profile: UsageProfile): ProfileStyle = when (profile) {
     UsageProfile.MONK -> ProfileStyle(Color(0xFF4FAF7F), Color(0xFF1F4E3A), Color(0xFFE4F2E8), Color(0xFF2F6B4F))
-    UsageProfile.MINDFUL -> ProfileStyle(Color(0xFF5BB5C9), Color(0xFF1E6A7D), Color(0xFFE2F3F6), Color(0xFF1E6A7D))
-    UsageProfile.HOOKED -> ProfileStyle(Color(0xFFF5B942), Color(0xFFB45309), Color(0xFFFDF3E1), Color(0xFFB45309))
+    UsageProfile.MINDFUL -> ProfileStyle(Color(0xFFFACC15), Color(0xFFA16207), Color(0xFFFEF9C3), Color(0xFF854D0E))
+    UsageProfile.HOOKED -> ProfileStyle(Color(0xFFFB923C), Color(0xFFC2410C), Color(0xFFFFEDD5), Color(0xFFC2410C))
     UsageProfile.ADDICT -> ProfileStyle(Color(0xFFF26B5B), Color(0xFF991B1B), Color(0xFFFDECEC), Color(0xFFB42318))
     UsageProfile.ZOMBIE -> ProfileStyle(Color(0xFF7F1D1D), Color(0xFF1C0A0A), Color(0xFFF3E4E4), Color(0xFF7F1D1D))
+}
+
+/** Background gradient and readable text color for a big card tinted by a usage level. */
+data class LevelCardColors(val brush: Brush, val content: Color)
+
+fun levelCardColors(profile: UsageProfile): LevelCardColors = when (profile) {
+    UsageProfile.MONK -> LevelCardColors(Brush.linearGradient(listOf(Color(0xFF2F7D57), Color(0xFF1F4E3A))), Color.White)
+    UsageProfile.MINDFUL -> LevelCardColors(Brush.linearGradient(listOf(Color(0xFFFDE047), Color(0xFFEAB308))), Color(0xFF3F2A06))
+    UsageProfile.HOOKED -> LevelCardColors(Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFC2410C))), Color.White)
+    UsageProfile.ADDICT -> LevelCardColors(Brush.linearGradient(listOf(Color(0xFFDC2626), Color(0xFF991B1B))), Color.White)
+    UsageProfile.ZOMBIE -> LevelCardColors(Brush.linearGradient(listOf(Color(0xFF7F1D1D), Color(0xFF3B0A0A))), Color.White)
 }
 
 fun profileIcon(profile: UsageProfile): ImageVector = when (profile) {

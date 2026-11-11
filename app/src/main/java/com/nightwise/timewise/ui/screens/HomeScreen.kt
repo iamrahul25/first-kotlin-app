@@ -4,7 +4,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -12,9 +14,11 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -38,11 +42,13 @@ import com.nightwise.timewise.R
 import com.nightwise.timewise.data.badges.BadgeRecord
 import com.nightwise.timewise.data.badges.UsageBadge
 import com.nightwise.timewise.data.challenge.ActiveChallenge
+import com.nightwise.timewise.data.profile.ProfileLogic
 import com.nightwise.timewise.data.profile.UsageProfile
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.AppUsageRow
 import com.nightwise.timewise.ui.components.BadgesEntryCard
+import com.nightwise.timewise.ui.components.profileStyle
 import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.HourlyTimeline
 import com.nightwise.timewise.ui.components.ProfilePill
@@ -60,6 +66,8 @@ import com.nightwise.timewise.ui.theme.Slate
 import java.util.Calendar
 
 private const val TOP_APPS = 5
+/** The usage meter runs from 0 to 10 hours, two hours per level. */
+private const val METER_MAX_MS = 10 * 60 * 60 * 1000L
 
 @Composable
 fun HomeScreen(
@@ -201,6 +209,8 @@ private fun GreetingHeader(profile: UsageProfile?, onOpenProfile: () -> Unit) {
 
 @Composable
 private fun HeroCard(usage: UsageSnapshot?) {
+    val todayMillis = usage?.today?.totalMillis
+    val level = todayMillis?.let(ProfileLogic::profileFor)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -208,14 +218,23 @@ private fun HeroCard(usage: UsageSnapshot?) {
             .padding(horizontal = 18.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(text = "Screen time today", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "Screen time today",
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.weight(1f)
+            )
+            if (level != null) LevelChip(level)
+        }
         Text(
-            text = usage?.let { formatDuration(it.today.totalMillis) } ?: "—",
+            text = todayMillis?.let(::formatDuration) ?: "—",
             color = Color.White,
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold
         )
-        if (usage != null) {
+        if (usage != null && level != null) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -228,7 +247,72 @@ private fun HeroCard(usage: UsageSnapshot?) {
                     fontSize = 11.sp
                 )
             }
+            UsageMeter(todayMillis, level, modifier = Modifier.padding(top = 8.dp))
         }
+    }
+}
+
+/** Dot in the level's color plus its name, e.g. "● Addict". */
+@Composable
+private fun LevelChip(level: UsageProfile) {
+    Row(
+        modifier = Modifier
+            .background(Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .background(profileStyle(level).light, CircleShape)
+        )
+        Text(text = level.title, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** Thin 0–10h meter split into the five levels, with a marker at today's total. */
+@Composable
+private fun UsageMeter(todayMillis: Long, level: UsageProfile, modifier: Modifier = Modifier) {
+    val fraction = (todayMillis.toFloat() / METER_MAX_MS).coerceIn(0f, 1f)
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(2.dp)),
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                UsageProfile.entries.forEach { band ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(profileStyle(band).light.copy(alpha = if (band.ordinal <= level.ordinal) 0.95f else 0.3f))
+                    )
+                }
+            }
+            Box(
+                modifier = Modifier
+                    .offset(x = (maxWidth - 12.dp) * fraction)
+                    .size(12.dp)
+                    .background(Color.White, CircleShape)
+                    .border(3.dp, profileStyle(level).light, CircleShape)
+            )
+        }
+        val next = UsageProfile.entries.getOrNull(level.ordinal + 1)
+        Text(
+            text = if (next == null) "Past 8 hours today"
+            else "${formatDuration(level.maxDailyMillis - todayMillis)} left before ${next.title}",
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 11.sp
+        )
     }
 }
 

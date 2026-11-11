@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.Lock
@@ -48,6 +49,8 @@ import com.nightwise.timewise.ui.theme.Forest
 import com.nightwise.timewise.ui.theme.Mint
 import com.nightwise.timewise.ui.theme.Amber
 import com.nightwise.timewise.ui.theme.AmberTint
+import com.nightwise.timewise.ui.theme.Blue
+import com.nightwise.timewise.ui.theme.BlueTint
 import com.nightwise.timewise.ui.theme.Ink
 import com.nightwise.timewise.ui.theme.Mist
 import com.nightwise.timewise.ui.theme.Purple
@@ -64,7 +67,8 @@ fun SettingsScreen(
     onOpenProfile: () -> Unit,
     onOpenPermissions: () -> Unit,
     onOpenBedtime: () -> Unit,
-    onOpenBatterySettings: () -> Unit
+    onOpenBatterySettings: () -> Unit,
+    onOpenFeatures: () -> Unit
 ) {
     val context = LocalContext.current
     Column(
@@ -122,6 +126,16 @@ fun SettingsScreen(
             fontSize = 11.sp,
             lineHeight = 15.sp,
             modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        SectionTitle("About")
+        SettingsRow(
+            icon = Icons.Rounded.AutoAwesome,
+            tint = Blue,
+            tileColor = BlueTint,
+            title = "All features",
+            subtitle = "$featureCount features, and where to find them",
+            onClick = onOpenFeatures
         )
 
         val day = FocusRepository.currentEpochDay() - FocusRepository.currentEpochDay(installedAt) + 1

@@ -58,6 +58,7 @@ import com.nightwise.timewise.ui.screens.AppInsightsScreen
 import com.nightwise.timewise.ui.screens.AppsScreen
 import com.nightwise.timewise.ui.screens.BadgesScreen
 import com.nightwise.timewise.ui.screens.BedtimeScreen
+import com.nightwise.timewise.ui.screens.FeaturesScreen
 import com.nightwise.timewise.ui.screens.FocusRoute
 import com.nightwise.timewise.ui.screens.HomeScreen
 import com.nightwise.timewise.ui.screens.PermissionActions
@@ -73,7 +74,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail }
+private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile, AppInsights, AppDetail, Features }
 
 private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
     save = { stack -> stack.map { it.name } },
@@ -250,6 +251,8 @@ private fun TimeWiseApp(
 
                 Route.AppDetail -> AppDetailScreen(usage = usage, packageName = detailPackage, onBack = ::pop)
 
+                Route.Features -> FeaturesScreen(onBack = ::pop)
+
                 Route.Reports -> ReportsScreen(
                     usage = usage,
                     challengeHistory = challengeState.history,
@@ -335,7 +338,8 @@ private fun TimeWiseApp(
                                 onOpenProfile = { navigate(Route.Profile) },
                                 onOpenPermissions = { navigate(Route.Permissions) },
                                 onOpenBedtime = { tab = Tab.Bedtime },
-                                onOpenBatterySettings = { PermissionUtils.openAppDetails(context) }
+                                onOpenBatterySettings = { PermissionUtils.openAppDetails(context) },
+                                onOpenFeatures = { navigate(Route.Features) }
                             )
                         }
                     }
