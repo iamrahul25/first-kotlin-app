@@ -40,7 +40,9 @@ import com.nightwise.timewise.bedtime.BedtimeScheduler
 import com.nightwise.timewise.challenge.ChallengeScheduler
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.FocusSettings
+import com.nightwise.timewise.data.badges.BadgeRepository
 import com.nightwise.timewise.data.challenge.ChallengeRepository
+import com.nightwise.timewise.data.profile.ProfileLogic
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.permissions.PermissionStatus
@@ -49,11 +51,13 @@ import com.nightwise.timewise.snapshot.DailySnapshotScheduler
 import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
 import com.nightwise.timewise.ui.screens.AppsScreen
+import com.nightwise.timewise.ui.screens.BadgesScreen
 import com.nightwise.timewise.ui.screens.BedtimeScreen
 import com.nightwise.timewise.ui.screens.FocusRoute
 import com.nightwise.timewise.ui.screens.HomeScreen
 import com.nightwise.timewise.ui.screens.PermissionActions
 import com.nightwise.timewise.ui.screens.PermissionsScreen
+import com.nightwise.timewise.ui.screens.ProfileScreen
 import com.nightwise.timewise.ui.screens.ReportsScreen
 import com.nightwise.timewise.ui.screens.SettingsScreen
 import com.nightwise.timewise.ui.screens.SplashScreen
@@ -64,7 +68,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports }
+private enum class Route { Splash, Onboarding, Main, Permissions, Apps, Reports, Badges, Profile }
 
 private val RouteStackSaver = listSaver<SnapshotStateList<Route>, String>(
     save = { stack -> stack.map { it.name } },
@@ -147,11 +151,13 @@ private fun TimeWiseApp(
 
     val challenges = remember { ChallengeRepository.get(context) }
     val challengeState by challenges.state.collectAsState()
+    val badges = remember { BadgeRepository.get(context) }
+    val badgeRecords by badges.records.collectAsState()
 
     val usage by produceState<UsageSnapshot?>(null, permissions.usageAccess) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
-                value = withContext(Dispatchers.IO) { screenTime.load() }
+                value = withContext(Dispatchers.IO) { screenTime.load().also(badges::record) }
                 val ended = withContext(Dispatchers.IO) { challenges.evaluate() }
                 if (ended != null) {
                     ChallengeScheduler.cancel(context)
@@ -161,6 +167,7 @@ private fun TimeWiseApp(
             }
         }
     }
+    val profile = remember(usage) { usage?.let { ProfileLogic.summarize(it.history, it.today.epochDay) } }
 
     val backStack = rememberSaveable(saver = RouteStackSaver) {
         mutableListOf(if (settings.onboardingDone) Route.Main else Route.Splash).toMutableStateList()
@@ -224,6 +231,24 @@ private fun TimeWiseApp(
                     onBack = ::pop
                 )
 
+                Route.Badges -> BadgesScreen(
+                    usage = usage,
+                    records = badgeRecords,
+                    onSeen = badges::markAllSeen,
+                    onBack = ::pop
+                )
+
+                Route.Profile -> ProfileScreen(
+                    summary = profile,
+                    usageAccessGranted = permissions.usageAccess,
+                    onAllowUsageAccess = actions.requestUsageAccess,
+                    onOpenFocus = {
+                        pop()
+                        tab = Tab.Focus
+                    },
+                    onBack = ::pop
+                )
+
                 Route.Main -> Column(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
@@ -235,9 +260,13 @@ private fun TimeWiseApp(
                                 usage = usage,
                                 usageAccessGranted = permissions.usageAccess,
                                 activeChallenge = challengeState.active,
+                                badgeRecords = badgeRecords,
+                                profile = profile?.profile,
                                 onAllowUsageAccess = actions.requestUsageAccess,
                                 onOpenApps = openApps,
-                                onOpenFocus = { tab = Tab.Focus }
+                                onOpenFocus = { tab = Tab.Focus },
+                                onOpenBadges = { navigate(Route.Badges) },
+                                onOpenProfile = { navigate(Route.Profile) }
                             )
 
                             Tab.Focus -> FocusRoute(
@@ -252,7 +281,9 @@ private fun TimeWiseApp(
                                 usageAccessGranted = permissions.usageAccess,
                                 onAllowUsageAccess = actions.requestUsageAccess,
                                 onOpenApps = openApps,
-                                onOpenReports = { navigate(Route.Reports) }
+                                badgeRecords = badgeRecords,
+                                onOpenReports = { navigate(Route.Reports) },
+                                onOpenBadges = { navigate(Route.Badges) }
                             )
 
                             Tab.Bedtime -> BedtimeScreen(
@@ -269,6 +300,8 @@ private fun TimeWiseApp(
                                 settings = settings,
                                 permissions = permissions,
                                 lastBackgroundSave = repository.lastBackgroundSave(),
+                                profile = profile,
+                                onOpenProfile = { navigate(Route.Profile) },
                                 onOpenPermissions = { navigate(Route.Permissions) },
                                 onOpenBedtime = { tab = Tab.Bedtime },
                                 onOpenBatterySettings = { PermissionUtils.openAppDetails(context) }

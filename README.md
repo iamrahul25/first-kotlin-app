@@ -13,6 +13,10 @@ usage stats, then nudges you to spend it better.
 - Bedtime schedule with a reminder notification
 - Automatic sleep log from when the phone was put down and picked up (Android 9+)
 - 1-hour focus challenge with streaks and badges
+- Screen time badges: 15 achievements (Zen Master, Digital Monk, ...) and 11 warnings in a
+  Hall of Shame (Screen Addict, Doom Spiral, ...), each with a lifetime count of times earned
+- Profile level from the last 7 days' average: Monk (under 2h), Mindful (2–4h), Hooked (4–6h),
+  Addict (6–8h) or Zombie (8h+), with what it takes to level up and what it costs a year
 - Month view (last 30 days) and a monthly trend of average daily screen time
 - Weekly and monthly reports, shareable as an image
 

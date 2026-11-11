@@ -35,12 +35,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.R
+import com.nightwise.timewise.data.badges.BadgeRecord
+import com.nightwise.timewise.data.badges.UsageBadge
 import com.nightwise.timewise.data.challenge.ActiveChallenge
+import com.nightwise.timewise.data.profile.UsageProfile
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.AppUsageRow
+import com.nightwise.timewise.ui.components.BadgesEntryCard
 import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.HourlyTimeline
+import com.nightwise.timewise.ui.components.ProfilePill
 import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.UsageAccessCard
 import com.nightwise.timewise.ui.components.focusCard
@@ -61,9 +66,13 @@ fun HomeScreen(
     usage: UsageSnapshot?,
     usageAccessGranted: Boolean,
     activeChallenge: ActiveChallenge?,
+    badgeRecords: Map<UsageBadge, BadgeRecord>,
+    profile: UsageProfile?,
     onAllowUsageAccess: () -> Unit,
     onOpenApps: (Long) -> Unit,
-    onOpenFocus: () -> Unit
+    onOpenFocus: () -> Unit,
+    onOpenBadges: () -> Unit,
+    onOpenProfile: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -72,7 +81,7 @@ fun HomeScreen(
             .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        GreetingHeader()
+        GreetingHeader(profile = profile, onOpenProfile = onOpenProfile)
 
         if (!usageAccessGranted) {
             UsageAccessCard(onAllow = onAllowUsageAccess)
@@ -82,6 +91,8 @@ fun HomeScreen(
         HeroCard(usage)
 
         FocusTeaser(activeChallenge = activeChallenge, onClick = onOpenFocus)
+
+        BadgesEntryCard(records = badgeRecords, onClick = onOpenBadges)
 
         Row(
             modifier = Modifier
@@ -168,7 +179,7 @@ private fun FocusTeaser(activeChallenge: ActiveChallenge?, onClick: () -> Unit) 
 }
 
 @Composable
-private fun GreetingHeader() {
+private fun GreetingHeader(profile: UsageProfile?, onOpenProfile: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -183,6 +194,7 @@ private fun GreetingHeader() {
             Text(text = greetingForNow(), color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(text = "Here's where your time went today.", color = Slate, fontSize = 12.sp)
         }
+        ProfilePill(profile = profile, onClick = onOpenProfile)
     }
 }
 

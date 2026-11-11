@@ -30,8 +30,12 @@ import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.R
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.FocusSettings
+import com.nightwise.timewise.data.profile.ProfileSummary
 import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.ui.components.IconTile
+import com.nightwise.timewise.ui.components.ProfileAvatar
+import com.nightwise.timewise.ui.components.profileStyle
+import com.nightwise.timewise.ui.formatDuration
 import com.nightwise.timewise.ui.components.ScreenHeader
 import com.nightwise.timewise.ui.components.SectionTitle
 import com.nightwise.timewise.ui.components.focusCard
@@ -53,6 +57,8 @@ fun SettingsScreen(
     settings: FocusSettings,
     permissions: PermissionStatus,
     lastBackgroundSave: Long?,
+    profile: ProfileSummary?,
+    onOpenProfile: () -> Unit,
     onOpenPermissions: () -> Unit,
     onOpenBedtime: () -> Unit,
     onOpenBatterySettings: () -> Unit
@@ -66,6 +72,8 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         ScreenHeader(title = "Settings")
+
+        ProfileRow(profile = profile, onClick = onOpenProfile)
 
         SectionTitle("General")
         SettingsRow(
@@ -123,6 +131,39 @@ fun SettingsScreen(
             Icon(Icons.Rounded.Lock, contentDescription = null, tint = Mist, modifier = Modifier.size(12.dp))
             Text(text = "TimeWise 2.0 · Everything stays on your device", color = Mist, fontSize = 11.sp)
         }
+    }
+}
+
+@Composable
+private fun ProfileRow(profile: ProfileSummary?, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusCard(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ProfileAvatar(profile = profile?.profile, size = 48.dp)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(text = "Your profile", color = Slate, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = profile?.profile?.title ?: "Not ready yet",
+                color = profile?.let { profileStyle(it.profile).text } ?: Ink,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = profile?.let { "${formatDuration(it.dailyAverageMillis)} a day, last 7 days" } ?: "Appears after a full day of tracking",
+                color = Slate,
+                fontSize = 12.sp
+            )
+        }
+        Image(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+        )
     }
 }
 

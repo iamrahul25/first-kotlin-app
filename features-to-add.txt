@@ -1,10 +1,30 @@
 Features to add: 
 ---------------
 
-- Add total number of reel blocker: at home page 
-- Add option to enable to disable the reel blocker at home page
+- Add a feature where we can do app wise analysis: meaning how much a app has wasted our time: 
 
+-> Eg: If we select a app say instagram: 
+- 
+
+- Add somewhere data when did you install this app and give all permission: 
+so, that we can monitor if the app is actually helping or not reducing the addition or not. 
+Can add other things accordingly. Ask me if any question. 
+
+- Add a option in Focus section: add individual limit on individual app
+And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
+
+Like: 
+1) Type the below text -> I still want to watch screen and make my life useless
+2) User can 
+
+
+- In setting add features sections what feature in button points we have added so far. 
 
 
 Features added: 
 --------------
+
+- Profile section (Home header pill / Settings > Your profile): 5 levels from the 7-day daily
+  average - Monk (<2h), Mindful (2-4h), Hooked (4-6h), Addict (6-8h), Zombie (8h+). Shows a
+  gauge of where you stand, how much to cut a day to level up, days a year lost to the phone,
+  and the full level ladder.

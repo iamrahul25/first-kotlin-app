@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import com.nightwise.timewise.data.FocusRepository
+import com.nightwise.timewise.data.badges.BadgeRepository
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import java.util.Calendar
 import kotlin.concurrent.thread
@@ -50,7 +51,8 @@ class DailySnapshotReceiver : BroadcastReceiver() {
             try {
                 // Loading merges recent days into saved history as a side effect.
                 runCatching {
-                    ScreenTimeRepository(appContext).load()
+                    val usage = ScreenTimeRepository(appContext).load()
+                    BadgeRepository.get(appContext).record(usage)
                     FocusRepository.get(appContext).markBackgroundSave()
                 }
             } finally {

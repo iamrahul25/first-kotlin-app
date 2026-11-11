@@ -36,12 +36,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.R
 import com.nightwise.timewise.data.FocusRepository
+import com.nightwise.timewise.data.badges.BadgeRecord
+import com.nightwise.timewise.data.badges.UsageBadge
 import com.nightwise.timewise.data.report.MonthAverage
 import com.nightwise.timewise.data.report.ReportBuilder
 import com.nightwise.timewise.data.usage.DayUsage
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.AppUsageRow
+import com.nightwise.timewise.ui.components.BadgesEntryCard
 import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.HourlyTimeline
 import com.nightwise.timewise.ui.components.ScreenHeader
@@ -69,7 +72,9 @@ fun StatsScreen(
     usageAccessGranted: Boolean,
     onAllowUsageAccess: () -> Unit,
     onOpenApps: (Long) -> Unit,
-    onOpenReports: () -> Unit
+    badgeRecords: Map<UsageBadge, BadgeRecord>,
+    onOpenReports: () -> Unit,
+    onOpenBadges: () -> Unit
 ) {
     var selectedDay by rememberSaveable { mutableLongStateOf(FocusRepository.currentEpochDay()) }
     var showMonth by rememberSaveable { mutableStateOf(false) }
@@ -136,6 +141,7 @@ fun StatsScreen(
         }
 
         ReportsEntry(onClick = onOpenReports)
+        BadgesEntryCard(records = badgeRecords, onClick = onOpenBadges)
 
         val day = usage.day(selectedDay) ?: usage.today
         Row(verticalAlignment = Alignment.CenterVertically) {
