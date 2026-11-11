@@ -17,6 +17,8 @@ usage stats, then nudges you to spend it better.
   Hall of Shame (Screen Addict, Doom Spiral, ...), each with a lifetime count of times earned
 - Profile level from the last 7 days' average: Monk (under 2h), Mindful (2–4h), Hooked (4–6h),
   Addict (6–8h) or Zombie (8h+), with what it takes to level up and what it costs a year
+- "Is TimeWise helping?": usage now against the week before install (from Android's own
+  records), with time saved, a weekly trend, and when the app was installed and permissions given
 - Month view (last 30 days) and a monthly trend of average daily screen time
 - Weekly and monthly reports, shareable as an image
 

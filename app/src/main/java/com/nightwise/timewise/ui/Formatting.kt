@@ -30,6 +30,9 @@ fun formatMinutesOfDay(context: Context, minutes: Int): String {
     return formatTime(context, calendar.timeInMillis)
 }
 
+/** "11 Nov 2026" in local time. */
+fun formatDate(millis: Long): String = SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(millis)
+
 /** "Mon", "Tue", ... */
 fun dayOfWeekLabel(epochDay: Long): String = utcFormat("EEE").format(FocusRepository.epochDayToUtcMillis(epochDay))
 

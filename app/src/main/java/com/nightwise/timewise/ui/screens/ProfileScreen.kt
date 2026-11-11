@@ -31,6 +31,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.nightwise.timewise.data.journey.JourneyProgress
+import com.nightwise.timewise.data.journey.JourneyState
 import com.nightwise.timewise.data.profile.ProfileSummary
 import com.nightwise.timewise.data.profile.UsageProfile
 import com.nightwise.timewise.ui.changeVsPrevious
@@ -57,6 +59,8 @@ private const val HOUR_MS = 60 * 60 * 1000L
 @Composable
 fun ProfileScreen(
     summary: ProfileSummary?,
+    journey: JourneyState,
+    journeyProgress: JourneyProgress?,
     usageAccessGranted: Boolean,
     onAllowUsageAccess: () -> Unit,
     onOpenFocus: () -> Unit,
@@ -74,18 +78,22 @@ fun ProfileScreen(
 
         when {
             !usageAccessGranted -> UsageAccessCard(onAllow = onAllowUsageAccess)
-            summary == null -> Text(
-                text = "Your profile appears after your first full day of tracking. Check back tomorrow.",
-                color = Slate,
-                fontSize = 13.sp,
-                lineHeight = 19.sp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusCard()
-                    .padding(16.dp)
-            )
+            summary == null -> {
+                Text(
+                    text = "Your profile appears after your first full day of tracking. Check back tomorrow.",
+                    color = Slate,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .focusCard()
+                        .padding(16.dp)
+                )
+                journeyProgress?.let { JourneyCard(journey, it) }
+            }
             else -> {
                 ProfileHero(summary)
+                journeyProgress?.let { JourneyCard(journey, it) }
                 GaugeCard(summary)
                 NextLevelCard(summary, onOpenFocus)
                 CostCard(summary)

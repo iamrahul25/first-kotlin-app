@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -42,6 +43,8 @@ import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.FocusSettings
 import com.nightwise.timewise.data.badges.BadgeRepository
 import com.nightwise.timewise.data.challenge.ChallengeRepository
+import com.nightwise.timewise.data.journey.JourneyLogic
+import com.nightwise.timewise.data.journey.JourneyRepository
 import com.nightwise.timewise.data.profile.ProfileLogic
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import com.nightwise.timewise.data.usage.UsageSnapshot
@@ -153,11 +156,19 @@ private fun TimeWiseApp(
     val challengeState by challenges.state.collectAsState()
     val badges = remember { BadgeRepository.get(context) }
     val badgeRecords by badges.records.collectAsState()
+    val journey = remember { JourneyRepository.get(context) }
+    val journeyState by journey.state.collectAsState()
+    LaunchedEffect(permissions) { journey.notePermissions(permissions) }
 
     val usage by produceState<UsageSnapshot?>(null, permissions.usageAccess) {
         lifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while (true) {
-                value = withContext(Dispatchers.IO) { screenTime.load().also(badges::record) }
+                value = withContext(Dispatchers.IO) {
+                    screenTime.load().also { snapshot ->
+                        badges.record(snapshot)
+                        journey.captureBaseline(snapshot)
+                    }
+                }
                 val ended = withContext(Dispatchers.IO) { challenges.evaluate() }
                 if (ended != null) {
                     ChallengeScheduler.cancel(context)
@@ -168,6 +179,9 @@ private fun TimeWiseApp(
         }
     }
     val profile = remember(usage) { usage?.let { ProfileLogic.summarize(it.history, it.today.epochDay) } }
+    val journeyProgress = remember(usage, journeyState) {
+        usage?.let { JourneyLogic.progress(it.history, journeyState.baseline, journeyState.installDay, it.today.epochDay) }
+    }
 
     val backStack = rememberSaveable(saver = RouteStackSaver) {
         mutableListOf(if (settings.onboardingDone) Route.Main else Route.Splash).toMutableStateList()
@@ -240,6 +254,8 @@ private fun TimeWiseApp(
 
                 Route.Profile -> ProfileScreen(
                     summary = profile,
+                    journey = journeyState,
+                    journeyProgress = journeyProgress,
                     usageAccessGranted = permissions.usageAccess,
                     onAllowUsageAccess = actions.requestUsageAccess,
                     onOpenFocus = {
@@ -301,6 +317,7 @@ private fun TimeWiseApp(
                                 permissions = permissions,
                                 lastBackgroundSave = repository.lastBackgroundSave(),
                                 profile = profile,
+                                installedAt = journeyState.installedAt,
                                 onOpenProfile = { navigate(Route.Profile) },
                                 onOpenPermissions = { navigate(Route.Permissions) },
                                 onOpenBedtime = { tab = Tab.Bedtime },

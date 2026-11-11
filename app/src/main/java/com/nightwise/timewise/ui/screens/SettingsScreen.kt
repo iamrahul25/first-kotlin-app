@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.R
@@ -35,6 +36,7 @@ import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.ui.components.IconTile
 import com.nightwise.timewise.ui.components.ProfileAvatar
 import com.nightwise.timewise.ui.components.profileStyle
+import com.nightwise.timewise.ui.formatDate
 import com.nightwise.timewise.ui.formatDuration
 import com.nightwise.timewise.ui.components.ScreenHeader
 import com.nightwise.timewise.ui.components.SectionTitle
@@ -58,6 +60,7 @@ fun SettingsScreen(
     permissions: PermissionStatus,
     lastBackgroundSave: Long?,
     profile: ProfileSummary?,
+    installedAt: Long,
     onOpenProfile: () -> Unit,
     onOpenPermissions: () -> Unit,
     onOpenBedtime: () -> Unit,
@@ -121,10 +124,19 @@ fun SettingsScreen(
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
-        Row(
+        val day = FocusRepository.currentEpochDay() - FocusRepository.currentEpochDay(installedAt) + 1
+        Text(
+            text = "With TimeWise since ${formatDate(installedAt)} · day $day",
+            color = Slate,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp),
+                .padding(top = 8.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically
         ) {
