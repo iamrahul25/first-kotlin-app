@@ -79,7 +79,7 @@ class LimitReachedActivity : ComponentActivity() {
     private fun grantExtra() {
         val pkg = blockedPackage
         AppLimitRepository.get(this).grantExtra(pkg, FocusRepository.currentEpochDay())
-        AppLimitService.onExtraGranted(pkg)
+        AppLimitService.onExtraGranted()
         packageManager.getLaunchIntentForPackage(pkg)?.let { launch ->
             runCatching { startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }

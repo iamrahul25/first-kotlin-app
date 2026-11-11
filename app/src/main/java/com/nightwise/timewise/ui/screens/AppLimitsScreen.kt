@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +40,6 @@ import androidx.compose.ui.unit.sp
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.limits.LimitLogic
 import com.nightwise.timewise.data.limits.LimitsState
-import com.nightwise.timewise.data.usage.AppInfoCache
 import com.nightwise.timewise.data.usage.AppUsage
 import com.nightwise.timewise.ui.components.AppIcon
 import com.nightwise.timewise.ui.components.AppLimitRow
@@ -49,6 +49,7 @@ import com.nightwise.timewise.ui.components.IconTile
 import com.nightwise.timewise.ui.components.LimitDialog
 import com.nightwise.timewise.ui.components.OutlineButton
 import com.nightwise.timewise.ui.components.ScreenHeader
+import com.nightwise.timewise.ui.components.SegmentedToggle
 import com.nightwise.timewise.ui.components.SmallActionButton
 import com.nightwise.timewise.ui.components.focusCard
 import com.nightwise.timewise.ui.components.rememberAppInfo
@@ -200,11 +201,12 @@ private fun NavRow(icon: ImageVector, tint: Color, tileColor: Color, title: Stri
     }
 }
 
-/** Every launchable app, most used today first, to pick one to limit. */
+/** Every launchable app, highest average a day over the last week first, to pick one to limit. */
 @Composable
 fun AppLimitPickerScreen(
     state: LimitsState,
     todayApps: List<AppUsage>,
+    dailyAverages: Map<String, Long>,
     onSetLimit: (String, Int) -> Unit,
     onRemoveLimit: (String) -> Unit,
     onBack: () -> Unit
@@ -214,19 +216,20 @@ fun AppLimitPickerScreen(
         value = withContext(Dispatchers.IO) {
             val pm = context.packageManager
             pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
-                .mapNotNull { it.activityInfo?.packageName }
-                .distinct()
-                .filter { it != context.packageName }
-                .map { it to AppInfoCache.get(context, it).label }
+                .filter { it.activityInfo != null && it.activityInfo.packageName != context.packageName }
+                .distinctBy { it.activityInfo.packageName }
+                .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
         }
     }
     var query by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<String?>(null) }
+    var weekAverage by rememberSaveable { mutableStateOf(false) }
     val usedByApp = remember(todayApps) { todayApps.associate { it.packageName to it.millis } }
-    val apps = remember(installed, usedByApp, query) {
+    val shown = if (weekAverage) dailyAverages else usedByApp
+    val apps = remember(installed, shown, query) {
         installed.orEmpty()
             .filter { (_, label) -> query.isBlank() || label.contains(query.trim(), ignoreCase = true) }
-            .sortedWith(compareByDescending<Pair<String, String>> { usedByApp[it.first] ?: 0L }.thenBy { it.second.lowercase() })
+            .sortedWith(compareByDescending<Pair<String, String>> { shown[it.first] ?: 0L }.thenBy { it.second.lowercase() })
     }
 
     Column(
@@ -240,11 +243,24 @@ fun AppLimitPickerScreen(
             value = query,
             onValueChange = { query = it },
             placeholder = "Search apps",
-            modifier = Modifier.padding(top = 6.dp, bottom = 12.dp)
+            modifier = Modifier.padding(top = 6.dp, bottom = 10.dp)
         )
-        if (installed == null) {
-            Text(text = "Loading apps…", color = Slate, fontSize = 12.sp)
-        }
+        SegmentedToggle(
+            options = listOf("Today", "7-day average"),
+            selectedIndex = if (weekAverage) 1 else 0,
+            onSelect = { weekAverage = it == 1 },
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Text(
+            text = when {
+                installed == null -> "Loading apps…"
+                weekAverage -> "Average a day over the last 7 days, highest first"
+                else -> "Time used today, highest first"
+            },
+            color = Slate,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(bottom = 10.dp)
+        )
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,7 +271,8 @@ fun AppLimitPickerScreen(
             items(apps, key = { it.first }) { (pkg, _) ->
                 PickerRow(
                     packageName = pkg,
-                    usedMillis = usedByApp[pkg] ?: 0L,
+                    millis = shown[pkg] ?: 0L,
+                    weekAverage = weekAverage,
                     limitMinutes = state.limitFor(pkg)?.minutes,
                     onClick = { editing = pkg }
                 )
@@ -268,6 +285,7 @@ fun AppLimitPickerScreen(
         LimitDialog(
             packageName = pkg,
             initialMinutes = existing?.minutes ?: LimitLogic.DEFAULT_LIMIT_MINUTES,
+            averageMillis = dailyAverages[pkg],
             onSave = { onSetLimit(pkg, it) },
             onRemove = existing?.let { { onRemoveLimit(pkg) } },
             onDismiss = { editing = null }
@@ -276,7 +294,7 @@ fun AppLimitPickerScreen(
 }
 
 @Composable
-private fun PickerRow(packageName: String, usedMillis: Long, limitMinutes: Int?, onClick: () -> Unit) {
+private fun PickerRow(packageName: String, millis: Long, weekAverage: Boolean, limitMinutes: Int?, onClick: () -> Unit) {
     val info = rememberAppInfo(packageName)
     Row(
         modifier = Modifier
@@ -290,7 +308,11 @@ private fun PickerRow(packageName: String, usedMillis: Long, limitMinutes: Int?,
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(text = info?.label ?: "", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                text = if (usedMillis > 0) "${formatDuration(usedMillis)} today" else "Not used today",
+                text = when {
+                    millis < 60_000L -> if (weekAverage) "Under 1m a day" else "Under 1m today"
+                    weekAverage -> "${formatDuration(millis)} a day"
+                    else -> "${formatDuration(millis)} today"
+                },
                 color = Slate,
                 fontSize = 12.sp
             )

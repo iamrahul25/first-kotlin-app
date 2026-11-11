@@ -27,6 +27,7 @@ object LimitLogic {
     val PRESET_MINUTES = listOf(15, 30, 60, 120)
 
     private const val MINUTE_MS = 60_000L
+    private const val WARN_BEFORE_MS = 5 * MINUTE_MS
     private const val MIN_CHECK_MS = 5_000L
     private const val MAX_CHECK_MS = 30_000L
 
@@ -37,6 +38,9 @@ object LimitLogic {
 
     fun isExhausted(usedMillis: Long, limitMinutes: Int, extraMinutes: Int): Boolean =
         usedMillis >= allowanceMillis(limitMinutes, extraMinutes)
+
+    /** A heads-up goes out once 5 minutes or less are left. */
+    fun shouldWarn(remainingMillis: Long): Boolean = remainingMillis in 1..WARN_BEFORE_MS
 
     /** Checks again right when the time should run out, but no faster than every 5s or slower than every 30s. */
     fun nextCheckDelay(remainingMillis: Long): Long = remainingMillis.coerceIn(MIN_CHECK_MS, MAX_CHECK_MS)

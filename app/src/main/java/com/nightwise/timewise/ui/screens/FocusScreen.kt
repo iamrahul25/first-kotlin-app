@@ -61,7 +61,9 @@ import com.nightwise.timewise.data.limits.AppLimitRepository
 import com.nightwise.timewise.data.limits.LimitLogic
 import com.nightwise.timewise.data.usage.AppUsage
 import com.nightwise.timewise.ui.components.AppIcon
+import com.nightwise.timewise.ui.components.FocusToggle
 import com.nightwise.timewise.ui.components.LimitDialog
+import com.nightwise.timewise.ui.components.SmallActionButton
 import com.nightwise.timewise.ui.components.OutlineButton
 import com.nightwise.timewise.ui.components.PrimaryButton
 import com.nightwise.timewise.ui.components.ScreenHeader
@@ -102,6 +104,7 @@ fun FocusRoute(
     notificationsGranted: Boolean,
     accessibilityEnabled: Boolean,
     todayApps: List<AppUsage>,
+    dailyAverages: Map<String, Long>,
     onAllowUsageAccess: () -> Unit,
     onAllowNotifications: () -> Unit,
     onEnableAccessibility: () -> Unit,
@@ -116,6 +119,8 @@ fun FocusRoute(
     val limitsRepository = remember { AppLimitRepository.get(context) }
     val limits by limitsRepository.state.collectAsState()
     val frictionContent by remember { FrictionRepository.get(context) }.content.collectAsState()
+    val focusRepository = remember { FocusRepository.get(context) }
+    val settings by focusRepository.settings.collectAsState()
     var editingLimit by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -165,6 +170,14 @@ fun FocusRoute(
                 outcome = ended
             }
         },
+        floatingTimer = {
+            FloatingTimerRow(
+                enabled = settings.floatingTimerEnabled,
+                accessibilityEnabled = accessibilityEnabled,
+                onToggle = { on -> focusRepository.updateSettings { it.copy(floatingTimerEnabled = on) } },
+                onEnableAccessibility = onEnableAccessibility
+            )
+        },
         appLimits = {
             AppLimitsSection(
                 state = limits,
@@ -188,6 +201,7 @@ fun FocusRoute(
         LimitDialog(
             packageName = pkg,
             initialMinutes = limits.limitFor(pkg)?.minutes ?: LimitLogic.DEFAULT_LIMIT_MINUTES,
+            averageMillis = dailyAverages[pkg],
             onSave = { limitsRepository.setLimit(pkg, it) },
             onRemove = { limitsRepository.removeLimit(pkg) },
             onDismiss = { editingLimit = null }
@@ -206,6 +220,7 @@ fun FocusScreen(
     onAllowNotifications: () -> Unit,
     onStart: (ChallengeType) -> Unit,
     onGiveUp: () -> Unit,
+    floatingTimer: @Composable () -> Unit = {},
     appLimits: @Composable () -> Unit = {}
 ) {
     val today = FocusRepository.currentEpochDay(now)
@@ -226,6 +241,7 @@ fun FocusScreen(
         val active = state.active
         if (active != null) {
             ActiveChallengeCard(active, now, progress, onGiveUp)
+            floatingTimer()
             if (!notificationsGranted) {
                 Text(
                     text = "Turn on notifications to hear when the challenge ends.",
@@ -323,6 +339,43 @@ private fun ActiveChallengeCard(active: ActiveChallenge, now: Long, progress: Ch
         DistractionMeter(progress, active.type.graceMillis)
         OutlineButton(onClick = onGiveUp) {
             Text(text = "Give up", color = Red, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+/** Turns the floating timer over other apps on or off; it's drawn by the accessibility service. */
+@Composable
+private fun FloatingTimerRow(
+    enabled: Boolean,
+    accessibilityEnabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onEnableAccessibility: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusCard()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = "Floating timer", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = if (accessibilityEnabled) {
+                    "Time left and other-app time, shown over every app. Drag to move, tap to open TimeWise."
+                } else {
+                    "Turn on TimeWise in Accessibility to show the timer over other apps."
+                },
+                color = Slate,
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
+        if (accessibilityEnabled) {
+            FocusToggle(checked = enabled, onCheckedChange = onToggle)
+        } else {
+            SmallActionButton(text = "Allow", onClick = onEnableAccessibility)
         }
     }
 }

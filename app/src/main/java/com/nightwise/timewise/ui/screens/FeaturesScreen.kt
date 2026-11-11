@@ -98,7 +98,7 @@ private val FeatureGroups = listOf(
     FeatureGroup(
         "Focus", Icons.Rounded.CenterFocusStrong, Forest, Mint, listOf(
             Feature("Focus challenges", "1-hour focus (5m grace), 8-hour focus (30m grace) and a 1-day detox (1h grace).", "Focus"),
-            Feature("Time left", "A live countdown for the running challenge, on Focus, on Home and in the notification shade.", "Focus · Home"),
+            Feature("Time left", "A live countdown for the running challenge on Focus, Home and the notification shade, plus a floating timer over other apps.", "Focus · Home"),
             Feature("Streaks & focus badges", "Daily streaks and badges for finished challenges.", "Focus"),
             Feature("Challenge alerts", "A notification when your challenge ends or fails.", "Focus"),
             Feature("App limits", "A daily time limit per app. When it runs out, the app closes.", "Focus"),

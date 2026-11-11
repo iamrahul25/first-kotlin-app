@@ -23,6 +23,14 @@ class AppInsightsTest {
     )
 
     @Test
+    fun weeklyAverageUsesFinishedTrackedDaysOnly() {
+        val averages = AppInsights.weeklyDailyAverages(history, today)
+        assertEquals(hour / 2, averages["insta"])
+        assertEquals(5 * hour / 2, averages["yt"])
+        assertEquals(emptyMap<String, Long>(), AppInsights.weeklyDailyAverages(listOf(day(today, "insta" to 1.0)), today))
+    }
+
+    @Test
     fun weekRankingIncludesTodayAndComparesWithTheWeekBefore() {
         val ranking = AppInsights.ranking(history, AppPeriod.WEEK, today)
         assertEquals(listOf("yt", "insta"), ranking.apps.map { it.packageName })

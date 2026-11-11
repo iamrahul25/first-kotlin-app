@@ -54,6 +54,7 @@ import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.HourlyTimeline
 import com.nightwise.timewise.ui.components.ScreenHeader
 import com.nightwise.timewise.ui.components.SectionTitle
+import com.nightwise.timewise.ui.components.SegmentedToggle
 import com.nightwise.timewise.ui.components.MonthlyTrendChart
 import com.nightwise.timewise.ui.components.UsageAccessCard
 import com.nightwise.timewise.ui.components.UsageBarChart
@@ -205,35 +206,6 @@ private fun AppInsightsEntry(usage: UsageSnapshot, onClick: () -> Unit) {
             contentDescription = "Open app insights",
             modifier = Modifier.size(18.dp)
         )
-    }
-}
-
-@Composable
-private fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(NeutralChip)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        options.forEachIndexed { index, option ->
-            val selected = index == selectedIndex
-            Text(
-                text = option,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(9.dp))
-                    .background(if (selected) CardWhite else NeutralChip)
-                    .clickable { onSelect(index) }
-                    .padding(vertical = 8.dp),
-                color = if (selected) Ink else Slate,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
 

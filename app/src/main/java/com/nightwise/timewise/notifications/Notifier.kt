@@ -15,7 +15,8 @@ import com.nightwise.timewise.permissions.PermissionUtils
 
 enum class Channel(val id: String, val title: String, val description: String) {
     BEDTIME("bedtime", "Bedtime reminders", "Reminds you when it's time to put the phone down for the night."),
-    CHALLENGES("focus_challenges", "Focus challenges", "Tells you when a focus challenge ends and when you earn a badge.")
+    CHALLENGES("focus_challenges", "Focus challenges", "Tells you when a focus challenge ends and when you earn a badge."),
+    APP_LIMITS("app_limits", "App limits", "Warns you shortly before an app's daily limit runs out.")
 }
 
 object Notifier {

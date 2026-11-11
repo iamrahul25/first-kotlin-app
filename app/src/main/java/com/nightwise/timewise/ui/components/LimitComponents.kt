@@ -51,6 +51,7 @@ import com.nightwise.timewise.ui.theme.StepperBg
 fun LimitDialog(
     packageName: String,
     initialMinutes: Int,
+    averageMillis: Long?,
     onSave: (Int) -> Unit,
     onRemove: (() -> Unit)?,
     onDismiss: () -> Unit
@@ -69,6 +70,19 @@ fun LimitDialog(
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
+                if (averageMillis != null && averageMillis > 0) {
+                    Text(
+                        text = "You average ${formatDuration(averageMillis)} a day over the last 7 days.",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(NeutralChip)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        color = Ink,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),

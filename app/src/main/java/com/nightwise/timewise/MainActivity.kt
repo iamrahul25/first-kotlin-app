@@ -47,6 +47,7 @@ import com.nightwise.timewise.data.journey.JourneyLogic
 import com.nightwise.timewise.data.journey.JourneyRepository
 import com.nightwise.timewise.data.limits.AppLimitRepository
 import com.nightwise.timewise.data.profile.ProfileLogic
+import com.nightwise.timewise.data.usage.AppInsights
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.permissions.PermissionStatus
@@ -192,6 +193,9 @@ private fun TimeWiseApp(
         }
     }
     val profile = remember(usage) { usage?.let { ProfileLogic.summarize(it.history, it.today.epochDay) } }
+    val appDailyAverages = remember(usage) {
+        usage?.let { AppInsights.weeklyDailyAverages(it.history, it.today.epochDay) }.orEmpty()
+    }
     val journeyProgress = remember(usage, journeyState) {
         usage?.let { JourneyLogic.progress(it.history, journeyState.baseline, journeyState.installDay, it.today.epochDay) }
     }
@@ -266,6 +270,7 @@ private fun TimeWiseApp(
                 Route.AppLimitPicker -> AppLimitPickerScreen(
                     state = limitsState,
                     todayApps = usage?.today?.apps.orEmpty(),
+                    dailyAverages = appDailyAverages,
                     onSetLimit = appLimits::setLimit,
                     onRemoveLimit = appLimits::removeLimit,
                     onBack = ::pop
@@ -330,6 +335,7 @@ private fun TimeWiseApp(
                                 notificationsGranted = permissions.notifications,
                                 accessibilityEnabled = permissions.accessibility,
                                 todayApps = usage?.today?.apps.orEmpty(),
+                                dailyAverages = appDailyAverages,
                                 onAllowUsageAccess = actions.requestUsageAccess,
                                 onAllowNotifications = actions.requestNotifications,
                                 onEnableAccessibility = actions.requestAccessibility,

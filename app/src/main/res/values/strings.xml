@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">TimeWise</string>
-    <string name="app_limit_service_description">Enforces the daily app limits you set in TimeWise. When an app\'s time is up, TimeWise closes it and shows your extra-time steps. It only sees which app is open, never what\'s on the screen or what you type.</string>
+    <string name="app_limit_service_description">Enforces the daily app limits you set in TimeWise and shows a small floating timer while a focus challenge runs. When an app\'s time is up, TimeWise closes it and shows your extra-time steps. It only sees which app is open, never what\'s on the screen or what you type.</string>
 </resources>

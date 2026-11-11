@@ -108,6 +108,16 @@ object AppInsights {
         )
     }
 
+    /**
+     * Each app's average a day over the last 7 finished days, counting days it wasn't opened.
+     * Only days with any screen time count, so a new install isn't averaged over empty days.
+     */
+    fun weeklyDailyAverages(history: List<DayUsage>, today: Long): Map<String, Long> {
+        val week = history.filter { it.epochDay in (today - WEEK) until today && it.totalMillis > 0 }
+        if (week.isEmpty()) return emptyMap()
+        return totalsByApp(week).mapValues { (_, total) -> total / week.size }
+    }
+
     private fun totalsByApp(days: List<DayUsage>): Map<String, Long> =
         days.flatMap { it.apps }.groupBy { it.packageName }.mapValues { (_, uses) -> uses.sumOf { it.millis } }
 }

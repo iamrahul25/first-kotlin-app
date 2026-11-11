@@ -26,6 +26,14 @@ class LimitLogicTest {
     }
 
     @Test
+    fun warnsInTheLastFiveMinutesOnly() {
+        assertFalse(LimitLogic.shouldWarn(6 * minute))
+        assertTrue(LimitLogic.shouldWarn(5 * minute))
+        assertTrue(LimitLogic.shouldWarn(1_000L))
+        assertFalse(LimitLogic.shouldWarn(0L))
+    }
+
+    @Test
     fun stepsAreFinerUnderAnHour() {
         assertEquals(35, LimitLogic.stepUp(30))
         assertEquals(75, LimitLogic.stepUp(60))

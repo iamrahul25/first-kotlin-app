@@ -18,7 +18,9 @@ data class FocusSettings(
     /** Minutes after local midnight. */
     val bedtimeMinutes: Int = 23 * 60,
     val wakeMinutes: Int = 7 * 60,
-    val reminderLeadMinutes: Int = 15
+    val reminderLeadMinutes: Int = 15,
+    /** Floating challenge timer over other apps. */
+    val floatingTimerEnabled: Boolean = true
 ) {
     /** Planned sleep length, handling schedules that cross midnight. */
     val sleepGoalMinutes: Int get() = Math.floorMod(wakeMinutes - bedtimeMinutes, 24 * 60)
@@ -55,6 +57,7 @@ class FocusRepository private constructor(context: Context) {
             putInt(KEY_BEDTIME_MINUTES, updated.bedtimeMinutes)
             putInt(KEY_WAKE_MINUTES, updated.wakeMinutes)
             putInt(KEY_REMINDER_LEAD, updated.reminderLeadMinutes)
+            putBoolean(KEY_FLOATING_TIMER, updated.floatingTimerEnabled)
         }
         _settings.value = updated
     }
@@ -124,7 +127,8 @@ class FocusRepository private constructor(context: Context) {
             bedtimeEnabled = prefs.getBoolean(KEY_BEDTIME_ENABLED, defaults.bedtimeEnabled),
             bedtimeMinutes = prefs.getInt(KEY_BEDTIME_MINUTES, defaults.bedtimeMinutes),
             wakeMinutes = prefs.getInt(KEY_WAKE_MINUTES, defaults.wakeMinutes),
-            reminderLeadMinutes = prefs.getInt(KEY_REMINDER_LEAD, defaults.reminderLeadMinutes)
+            reminderLeadMinutes = prefs.getInt(KEY_REMINDER_LEAD, defaults.reminderLeadMinutes),
+            floatingTimerEnabled = prefs.getBoolean(KEY_FLOATING_TIMER, defaults.floatingTimerEnabled)
         )
     }
 
@@ -144,6 +148,7 @@ class FocusRepository private constructor(context: Context) {
         private const val KEY_BEDTIME_MINUTES = "bedtime_minutes"
         private const val KEY_WAKE_MINUTES = "wake_minutes"
         private const val KEY_REMINDER_LEAD = "reminder_lead_minutes"
+        private const val KEY_FLOATING_TIMER = "floating_timer_enabled"
         private const val KEY_LAST_BACKGROUND_SAVE = "last_background_save"
 
         @Volatile

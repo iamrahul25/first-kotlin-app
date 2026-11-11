@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -195,6 +196,35 @@ fun OutlineButton(
         verticalAlignment = Alignment.CenterVertically,
         content = content
     )
+}
+
+@Composable
+fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(NeutralChip)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        options.forEachIndexed { index, option ->
+            val selected = index == selectedIndex
+            Text(
+                text = option,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(if (selected) CardWhite else NeutralChip)
+                    .clickable { onSelect(index) }
+                    .padding(vertical = 8.dp),
+                color = if (selected) Ink else Slate,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 /** Small filled action, used for "Allow" / "Fix" style buttons inside cards. */
