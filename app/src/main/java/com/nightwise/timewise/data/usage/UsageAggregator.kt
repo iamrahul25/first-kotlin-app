@@ -148,7 +148,12 @@ object UsageAggregator {
         return inWindow.count { it.type == EventType.SCREEN_INTERACTIVE }
     }
 
-    /** Longest screen-off stretch inside the window, or null if none reaches [minMillis]. */
+    /**
+     * Longest stretch the phone was put down inside the window, or null if none reaches
+     * [minMillis]. The screen lighting up is not enough to count as awake: notifications and
+     * alarms turn it on without anyone touching the phone. The stretch only ends when the phone
+     * is picked up (unlocked, or an app comes to the front) while the screen is on.
+     */
     fun longestScreenOff(
         events: List<RawEvent>,
         windowStart: Long,
@@ -156,19 +161,36 @@ object UsageAggregator {
         minMillis: Long
     ): SleepGap? {
         var offSince: Long? = null
+        var screenOn = false
+        var pickedUpAt: Long? = null
         var best: SleepGap? = null
+
+        // Ends the current screen-on stretch; it only counts as a wake if the phone was picked up.
+        fun endScreenOn() {
+            val start = offSince
+            val pickup = pickedUpAt
+            if (start != null && pickup != null) {
+                val gap = SleepGap(start, pickup)
+                if (best == null || gap.durationMillis > best!!.durationMillis) best = gap
+                offSince = null
+            }
+            screenOn = false
+            pickedUpAt = null
+        }
+
         for (event in events.sortedBy { it.timestamp }) {
             if (event.timestamp !in windowStart..windowEnd) continue
             when (event.type) {
-                EventType.SCREEN_NON_INTERACTIVE -> if (offSince == null) offSince = event.timestamp
-                EventType.SCREEN_INTERACTIVE -> {
-                    val since = offSince ?: continue
-                    val gap = SleepGap(since, event.timestamp)
-                    if (best == null || gap.durationMillis > best.durationMillis) best = gap
-                    offSince = null
+                EventType.SCREEN_NON_INTERACTIVE -> {
+                    endScreenOn()
+                    if (offSince == null) offSince = event.timestamp
                 }
+                EventType.SCREEN_INTERACTIVE -> screenOn = true
+                EventType.KEYGUARD_HIDDEN, EventType.ACTIVITY_RESUMED ->
+                    if (screenOn && pickedUpAt == null) pickedUpAt = event.timestamp
             }
         }
+        endScreenOn()
         return best?.takeIf { it.durationMillis >= minMillis }
     }
 

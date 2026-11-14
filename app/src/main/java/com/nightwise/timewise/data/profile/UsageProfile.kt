@@ -18,6 +18,17 @@ enum class UsageProfile(val title: String, val tagline: String, val maxDailyMill
     val better: UsageProfile? get() = entries.getOrNull(ordinal - 1)
 }
 
+/** One past week: its average daily screen time and the level that average falls in. */
+data class WeekStatus(
+    /** 1 is the last finished week, larger is further back. */
+    val weeksAgo: Int,
+    /** First and last day of the week, both inclusive, as epoch days. */
+    val startEpochDay: Long,
+    val endEpochDay: Long,
+    val dailyAverageMillis: Long,
+    val profile: UsageProfile
+)
+
 data class ProfileSummary(
     val profile: UsageProfile,
     /** Average over the finished days of the last week that have data. */
@@ -25,7 +36,9 @@ data class ProfileSummary(
     val trackedDays: Int,
     /** Same average for the week before, or null without data. */
     val previousDailyAverageMillis: Long?,
-    val thirtyDayAverageMillis: Long?
+    val thirtyDayAverageMillis: Long?,
+    /** Oldest first. Only weeks that have data are included. */
+    val weeklyStatuses: List<WeekStatus> = emptyList()
 ) {
     /** How much less a day it takes to reach the next level, or null at the top. */
     val cutToNextLevelMillis: Long?
@@ -48,6 +61,8 @@ object ProfileLogic {
 
     private const val WEEK = 7
     private const val MONTH = 30
+    /** How many past weeks the weekly status graph shows. */
+    const val WEEKS_SHOWN = 6
 
     fun profileFor(dailyAverageMillis: Long): UsageProfile =
         UsageProfile.entries.first { dailyAverageMillis < it.maxDailyMillis }
@@ -63,9 +78,20 @@ object ProfileLogic {
             dailyAverageMillis = average,
             trackedDays = week.size,
             previousDailyAverageMillis = tracked(byDay, today - 2 * WEEK, today - WEEK).takeIf { it.isNotEmpty() }?.meanMillis(),
-            thirtyDayAverageMillis = tracked(byDay, today - MONTH, today).takeIf { it.size > WEEK }?.meanMillis()
+            thirtyDayAverageMillis = tracked(byDay, today - MONTH, today).takeIf { it.size > WEEK }?.meanMillis(),
+            weeklyStatuses = weeklyStatuses(byDay, today)
         )
     }
+
+    /** One status per past week with data, oldest first. Weeks are 7-day blocks ending today. */
+    private fun weeklyStatuses(byDay: Map<Long, DayUsage>, today: Long): List<WeekStatus> =
+        (WEEKS_SHOWN downTo 1).mapNotNull { weeksAgo ->
+            val from = today - WEEK * weeksAgo
+            tracked(byDay, from, from + WEEK).takeIf { it.isNotEmpty() }?.let { days ->
+                val average = days.meanMillis()
+                WeekStatus(weeksAgo, from, from + WEEK - 1, average, profileFor(average))
+            }
+        }
 
     private fun tracked(byDay: Map<Long, DayUsage>, from: Long, until: Long): List<Long> =
         (from until until).mapNotNull { byDay[it]?.totalMillis?.takeIf { millis -> millis > 0 } }

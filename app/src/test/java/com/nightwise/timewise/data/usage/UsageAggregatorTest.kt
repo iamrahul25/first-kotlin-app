@@ -112,12 +112,23 @@ class UsageAggregatorTest {
     @Test
     fun longestScreenOffIsTheNight() {
         val events = listOf(
-            screenOff(0), screenOn(1 * hour),
-            screenOff(2 * hour), screenOn(9 * hour),
-            screenOff(10 * hour), screenOn(10 * hour + 5 * min)
+            screenOff(0), screenOn(1 * hour), unlock(1 * hour),
+            screenOff(2 * hour), screenOn(9 * hour), unlock(9 * hour),
+            screenOff(10 * hour), screenOn(10 * hour + 5 * min), unlock(10 * hour + 5 * min)
         )
         val gap = UsageAggregator.longestScreenOff(events, 0, 12 * hour, minMillis = 2 * hour)
         assertEquals(SleepGap(2 * hour, 9 * hour), gap)
+    }
+
+    @Test
+    fun screenLightingUpWithoutPickupDoesNotWakeYou() {
+        // A notification lights the screen at 40 min and it goes off again; nobody picks it up.
+        val events = listOf(
+            screenOff(0), screenOn(40 * min), screenOff(41 * min),
+            screenOn(9 * hour), unlock(9 * hour), screenOff(9 * hour + 5 * min)
+        )
+        val gap = UsageAggregator.longestScreenOff(events, 0, 12 * hour, minMillis = 2 * hour)
+        assertEquals(SleepGap(0, 9 * hour), gap)
     }
 
     @Test
