@@ -1,4 +1,13 @@
 <resources>
     <string name="app_name">TimeWise</string>
     <string name="app_limit_service_description">Enforces the daily app limits you set in TimeWise and shows a small floating timer while a focus challenge runs. When an app\'s time is up, TimeWise closes it and shows your extra-time steps. It only sees which app is open, never what\'s on the screen or what you type.</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_vs_yesterday">vs yesterday</string>
+    <string name="widget_most_used">Most used</string>
+    <string name="widget_tiny_label">TimeWise · Ring</string>
+    <string name="widget_small_label">TimeWise · Today</string>
+    <string name="widget_medium_label">TimeWise · Today + top apps</string>
+    <string name="widget_tiny_description">Today\'s screen time in a ring that fills as the day goes on.</string>
+    <string name="widget_small_description">Today\'s screen time, your level and how it compares with yesterday.</string>
+    <string name="widget_medium_description">Today\'s screen time, level, unlocks and your most used apps.</string>
 </resources>

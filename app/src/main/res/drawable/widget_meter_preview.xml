@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stand-in shown in the widget picker until the real meter is drawn. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:bottom="4dp" android:top="4dp">
+        <shape android:shape="rectangle">
+            <gradient android:startColor="#4FAF7F" android:centerColor="#FACC15" android:endColor="#66F26B5B" />
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+</layer-list>
