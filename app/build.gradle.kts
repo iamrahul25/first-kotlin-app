@@ -12,7 +12,7 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.nightwise.timewise"
-    compileSdk = 35
+    compileSdk = 36
 
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
@@ -28,8 +28,8 @@ android {
     defaultConfig {
         applicationId = "com.nightwise.timewise"
         minSdk = 24
-        targetSdk = 35
-        versionCode = 1
+        targetSdk = 36
+        versionCode = 2
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

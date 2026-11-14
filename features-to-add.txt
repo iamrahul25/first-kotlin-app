@@ -1,19 +1,7 @@
 Features to add: 
 ---------------
 
-- Add a option in Focus section: add individual limit on individual app
-And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
 
-Like: 
-1) Type the below text -> I still want to watch screen and make my life useless (Everytime random phrase) then on next comes next task
-2) User can select photos of family member, Photo of girlfriend, for whome they want to do something (can add multiple swipable phootos and user can add pin on particular image if he/she want so that only he can see his girlfriend photo) 
-3) Can there dream list what he/she want to achieve (write one dream to from the list to proceed next) so that he can remember what he/she want to achieve and stop wasting time. 
-4) Some quotes related to phone usage time -> Very real fact and how impact overall health lift, strong quotes. (All add this quotes and info section related to mobile, screen, addition, etc -> Sepeaction button or section to view all the quotes, data, so, that user can read and make aware also good things also, if start focusing today, etc or minimising 1 hours days, )
-5) Some todo task which he/she has save already, which he/she saved in before. 
-6) Add music to play -> Which he she has selected from storage. (Motivation music), can add multiple music, autopic thumbnal from music or keep placeholder. 
-
-So, all 6 things one by one to allow user extra 15 min. 
-Do proper setting up of these things and later also user can set-it up. 
 
 - Add a proper quotes, info, to add some good input to mind to keep motivate user to do something stop wasting time. 
 Understand the dopamine, how dopamine work, dopmine crash, and overlife effect. 
@@ -41,3 +29,17 @@ Features added:
 
 - All features list (Settings > About > All features): every feature in bullet points, grouped
   into 8 areas, each with a one-line description and where to find it in the app.
+
+- Add a option in Focus section: add individual limit on individual app
+And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
+
+Like: 
+1) Type the below text -> I still want to watch screen and make my life useless (Everytime random phrase) then on next comes next task
+2) User can select photos of family member, Photo of girlfriend, for whome they want to do something (can add multiple swipable phootos and user can add pin on particular image if he/she want so that only he can see his girlfriend photo) 
+3) Can there dream list what he/she want to achieve (write one dream to from the list to proceed next) so that he can remember what he/she want to achieve and stop wasting time. 
+4) Some quotes related to phone usage time -> Very real fact and how impact overall health lift, strong quotes. (All add this quotes and info section related to mobile, screen, addition, etc -> Sepeaction button or section to view all the quotes, data, so, that user can read and make aware also good things also, if start focusing today, etc or minimising 1 hours days, )
+5) Some todo task which he/she has save already, which he/she saved in before. 
+6) Add music to play -> Which he she has selected from storage. (Motivation music), can add multiple music, autopic thumbnal from music or keep placeholder. 
+
+So, all 6 things one by one to allow user extra 15 min. 
+Do proper setting up of these things and later also user can set-it up. 
