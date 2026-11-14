@@ -1,111 +1,58 @@
-# First Kotlin App: Hello, World!
+# TimeWise
 
-This guide creates and runs a small Kotlin program on Windows.
+Android focus and screen time app. It shows where your time goes, using Android's
+usage stats, then nudges you to spend it better.
 
-## 1. Install Java
+## Features
 
-Kotlin needs a Java Development Kit (JDK).
+- Total screen time today, compared with yesterday
+- Per-app screen time, ranked, with app icons
+- Phone unlock count (Android 9+)
+- Weekly bar chart (tap a day to see its apps) and week-over-week change
+- Hourly timeline of when the phone was used
+- Bedtime schedule with a reminder notification
+- Automatic sleep log from when the phone was put down and picked up (Android 9+)
+- 1-hour focus challenge with streaks and badges
+- Screen time badges: 15 in the Hall of Fame (Zen Master, Digital Monk, ...) and 11 warnings in a
+  Hall of Shame (Screen Addict, Doom Spiral, ...), each with a lifetime count of times earned
+- Profile level from the last 7 days' average: Monk (under 2h), Mindful (2–4h), Hooked (4–6h),
+  Addict (6–8h) or Zombie (8h+), with what it takes to level up and what it costs a year
+- "Is TimeWise helping?": usage now against the week before install (from Android's own
+  records), with time saved, a weekly trend, and when the app was installed and permissions given
+- Month view (last 30 days) and a monthly trend of average daily screen time
+- Weekly and monthly reports, shareable as an image
+- App insights: top time-wasting apps by week, month and all time, and a detail page per app
+  with totals, daily average and a daily usage graph
 
-1. Install a recent JDK, such as [Eclipse Temurin](https://adoptium.net/temurin/releases/).
-2. During installation, allow it to set `JAVA_HOME` if that option is available.
-3. Open a new PowerShell window and verify Java:
+Everything is computed on the device. No data leaves the phone unless you share a report.
+
+Android keeps detailed usage events for only about 10 days, so TimeWise saves a daily
+summary (total, unlocks, top 25 apps, sleep) every night just after midnight in the
+background, and whenever the app is opened. The month view, trend and reports fill in from
+that saved history over time. Settings shows when the last nightly save ran.
+
+To trigger the nightly save by hand on a debug build:
+
+```bash
+adb shell am broadcast -n com.nightwise.timewise/.snapshot.DailySnapshotReceiver
+```
+
+## Permissions
+
+| Permission | Why |
+| --- | --- |
+| Usage Access (required) | Screen time, per-app time, unlocks, sleep log |
+| Notifications (recommended) | Bedtime reminder, focus challenge results |
+
+Usage Access is granted from `Settings > Apps > Special app access > Usage access > TimeWise`.
+The app links straight there from onboarding.
+
+## Build
 
 ```powershell
-java -version
+.\gradlew.bat assembleDebug          # app\build\outputs\apk\debug\app-debug.apk
+.\gradlew.bat testDebugUnitTest      # unit tests
+python app.py                        # interactive menu: run, build, sign, release
 ```
 
-You should see a Java version printed.
-
-## 2. Install Kotlin
-
-Install the Kotlin compiler by following the Windows instructions in the [official Kotlin documentation](https://kotlinlang.org/docs/command-line.html).
-
-After installation, open a new PowerShell window and verify Kotlin:
-
-```powershell
-kotlinc -version
-```
-
-You should see a Kotlin compiler version printed.
-
-## 3. Create the source file
-
-In PowerShell, move into this project folder:
-
-```powershell
-cd c:\all-projects\first-kotlin-app
-```
-
-Create a file named `Main.kt` in VS Code with this code:
-
-```kotlin
-fun main() {
-    println("Hello, World!")
-}
-```
-
-Save the file.
-
-## 4. Compile the program
-
-Run this command in the project folder:
-
-```powershell
-kotlinc Main.kt -include-runtime -d hello.jar
-```
-
-This compiles `Main.kt` into an executable Java archive named `hello.jar`.
-
-### Command breakdown
-
-- `kotlinc` = the Kotlin compiler
-- `Main.kt` = the source file to compile
-- `-include-runtime` = includes the Kotlin runtime in the generated JAR so it can run without separately installing Kotlin on the target machine
-- `-d hello.jar` = writes the compiled output to a file named `hello.jar`
-
-### What is a JAR file?
-
-A JAR (Java Archive) file is a package that contains compiled Java/Kotlin classes and other resources. It is similar to a ZIP file, but it is designed for Java programs.
-
-In this project, `hello.jar` is the compiled version of your Kotlin application. After building it, you can run it with Java:
-
-```powershell
-java -jar hello.jar
-```
-
-This creates a runnable JAR file that can be launched with `java -jar hello.jar`.
-
-## 5. Run the program
-
-```powershell
-java -jar hello.jar
-```
-
-Expected output:
-
-```text
-Hello, World!
-```
-
-## 6. Try changing it
-
-Change the message in `Main.kt`, for example:
-
-```kotlin
-fun main() {
-    println("Hello from my first Kotlin app!")
-}
-```
-
-Compile and run it again:
-
-```powershell
-kotlinc Main.kt -include-runtime -d hello.jar
-java -jar hello.jar
-```
-
-## Troubleshooting
-
-- If `java` is not recognized, close and reopen PowerShell after installing the JDK.
-- If `kotlinc` is not recognized, check that the Kotlin compiler's `bin` folder is on your `PATH`, then open a new PowerShell window.
-- Make sure you run the commands from `c:\all-projects\first-kotlin-app` and that the file is named exactly `Main.kt`.
+For signing and Play Store builds, see [generate-apk.md](generate-apk.md) and [how_to_run.md](how_to_run.md).
