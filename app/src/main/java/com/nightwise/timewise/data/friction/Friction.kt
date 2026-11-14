@@ -18,6 +18,8 @@ data class FrictionContent(
     val dreams: List<Dream> = emptyList(),
     val todos: List<FrictionTodo> = emptyList(),
     val tracks: List<MotivationTrack> = emptyList(),
+    /** Faith photos are always visible, so they never carry the lock. Up to [FrictionLogic.FAITH_MAX_PHOTOS]. */
+    val faithPhotos: List<LovedPhoto> = emptyList(),
     val hasPin: Boolean = false
 ) {
     val openTodos: List<FrictionTodo> get() = todos.filter { !it.done }
@@ -27,6 +29,7 @@ data class FrictionContent(
 enum class FrictionStep(val title: String, val builtIn: Boolean) {
     PHRASE("Type it out", builtIn = true),
     PEOPLE("Your people", builtIn = false),
+    FAITH("Your faith", builtIn = false),
     DREAM("Your dreams", builtIn = false),
     AWARENESS("The real cost", builtIn = true),
     TODOS("Your to-dos", builtIn = false),
@@ -35,6 +38,8 @@ enum class FrictionStep(val title: String, val builtIn: Boolean) {
 
 object FrictionLogic {
     const val PEOPLE_SECONDS = 5
+    const val FAITH_SECONDS = 5
+    const val FAITH_MAX_PHOTOS = 5
     const val AWARENESS_SECONDS = 10
     const val MUSIC_SECONDS = 30
 
@@ -59,6 +64,7 @@ object FrictionLogic {
     fun isReady(step: FrictionStep, content: FrictionContent): Boolean = when (step) {
         FrictionStep.PHRASE, FrictionStep.AWARENESS -> true
         FrictionStep.PEOPLE -> content.photos.isNotEmpty()
+        FrictionStep.FAITH -> content.faithPhotos.isNotEmpty()
         FrictionStep.DREAM -> content.dreams.isNotEmpty()
         FrictionStep.TODOS -> content.openTodos.isNotEmpty()
         FrictionStep.MUSIC -> content.tracks.isNotEmpty()

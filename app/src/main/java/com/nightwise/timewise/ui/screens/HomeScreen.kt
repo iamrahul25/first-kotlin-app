@@ -29,10 +29,17 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
@@ -46,6 +53,7 @@ import com.nightwise.timewise.data.badges.UsageBadge
 import com.nightwise.timewise.data.challenge.ActiveChallenge
 import com.nightwise.timewise.data.profile.ProfileLogic
 import com.nightwise.timewise.data.profile.UsageProfile
+import com.nightwise.timewise.data.usage.DayUsage
 import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.AppUsageRow
@@ -61,6 +69,7 @@ import com.nightwise.timewise.ui.components.focusCard
 import com.nightwise.timewise.ui.components.rememberAppInfo
 import com.nightwise.timewise.ui.formatCountdown
 import com.nightwise.timewise.ui.formatDuration
+import com.nightwise.timewise.ui.relativeDayLabel
 import com.nightwise.timewise.ui.theme.Forest
 import com.nightwise.timewise.ui.theme.ForestDeep
 import com.nightwise.timewise.ui.theme.Ink
@@ -71,6 +80,8 @@ import kotlinx.coroutines.delay
 import java.util.Calendar
 
 private const val TOP_APPS = 5
+/** Sentinel for "no day picked", which means today. */
+private const val NO_DAY_SELECTED = Long.MIN_VALUE
 /** The usage meter runs from 0 to 10 hours, two hours per level. */
 private const val METER_MAX_MS = 10 * 60 * 60 * 1000L
 
@@ -103,7 +114,23 @@ fun HomeScreen(
             return@Column
         }
 
-        HeroCard(usage)
+        // Time travel: the snapshot holds the last 14 days with full detail. Nothing selected means today.
+        val days = usage?.days.orEmpty()
+        var selectedEpochDay by rememberSaveable { mutableLongStateOf(NO_DAY_SELECTED) }
+        val dayIndex = days.indexOfFirst { it.epochDay == selectedEpochDay }.takeIf { it >= 0 } ?: days.lastIndex
+        val day = days.getOrNull(dayIndex)
+        val previous = days.getOrNull(dayIndex - 1)
+        val isToday = day != null && dayIndex == days.lastIndex
+
+        HeroCard(
+            day = day,
+            previous = previous,
+            isToday = isToday,
+            canGoBack = dayIndex > 0,
+            canGoForward = dayIndex in 0 until days.lastIndex,
+            onBack = { days.getOrNull(dayIndex - 1)?.let { selectedEpochDay = it.epochDay } },
+            onForward = { days.getOrNull(dayIndex + 1)?.let { selectedEpochDay = it.epochDay } }
+        )
 
         FocusTeaser(activeChallenge = activeChallenge, onClick = onOpenFocus)
 
@@ -115,16 +142,14 @@ fun HomeScreen(
                 .height(IntrinsicSize.Min),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val today = usage?.today
-            val yesterdayUnlocks = usage?.yesterday?.unlocks
             MiniStat(
                 icon = Icons.Rounded.LockOpen,
                 label = "Unlocks",
-                value = today?.unlocks?.toString() ?: "—",
-                caption = yesterdayUnlocks?.let { "Yesterday $it" } ?: "Not supported",
+                value = day?.unlocks?.toString() ?: "—",
+                caption = previous?.let { p -> p.unlocks?.let { "${relativeDayLabel(p.epochDay)} $it" } } ?: "Not supported",
                 modifier = Modifier.weight(1f)
             )
-            val top = today?.apps?.firstOrNull()
+            val top = day?.apps?.firstOrNull()
             MostUsedStat(
                 packageName = top?.packageName,
                 millis = top?.millis ?: 0L,
@@ -133,8 +158,8 @@ fun HomeScreen(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionTitle("Most used today", modifier = Modifier.weight(1f))
-            if (usage != null && usage.today.apps.size > TOP_APPS) {
+            SectionTitle(if (isToday) "Most used today" else "Most used that day", modifier = Modifier.weight(1f))
+            if (day != null && day.apps.size > TOP_APPS) {
                 Text(
                     text = "See all",
                     color = Forest,
@@ -142,19 +167,19 @@ fun HomeScreen(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .clickable { onOpenApps(usage.today.epochDay) }
+                        .clickable { onOpenApps(day.epochDay) }
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
         }
-        TopAppsCard(usage, onOpenApp)
+        TopAppsCard(day, isToday, onOpenApp)
 
-        CategoryUsageCard(apps = usage?.today?.apps, onViewAll = onOpenCategories)
+        CategoryUsageCard(apps = day?.apps, onViewAll = onOpenCategories)
 
-        SectionTitle("Today's Timeline")
+        SectionTitle(if (isToday) "Today's Timeline" else "Timeline")
         HourlyTimeline(
-            hourlyMinutes = usage?.today?.hourlyMinutes ?: List(24) { 0 },
-            currentHour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY),
+            hourlyMinutes = day?.hourlyMinutes ?: List(24) { 0 },
+            currentHour = if (isToday) Calendar.getInstance().get(Calendar.HOUR_OF_DAY) else null,
             modifier = Modifier
                 .fillMaxWidth()
                 .focusCard()
@@ -228,8 +253,16 @@ private fun GreetingHeader(profile: UsageProfile?, onOpenProfile: () -> Unit) {
 }
 
 @Composable
-private fun HeroCard(usage: UsageSnapshot?) {
-    val todayMillis = usage?.today?.totalMillis
+private fun HeroCard(
+    day: DayUsage?,
+    previous: DayUsage?,
+    isToday: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onBack: () -> Unit,
+    onForward: () -> Unit
+) {
+    val todayMillis = day?.totalMillis
     val level = todayMillis?.let(ProfileLogic::profileFor)
     Column(
         modifier = Modifier
@@ -240,10 +273,12 @@ private fun HeroCard(usage: UsageSnapshot?) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Screen time today",
+                text = if (isToday) "Screen time today" else "Screen time",
                 color = Color.White.copy(alpha = 0.75f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
             if (level != null) LevelChip(level)
@@ -254,21 +289,32 @@ private fun HeroCard(usage: UsageSnapshot?) {
             fontSize = 40.sp,
             fontWeight = FontWeight.Bold
         )
-        if (usage != null && level != null) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val (change, trend) = changeVsPrevious(usage.today.totalMillis, usage.yesterday.totalMillis)
-                ChangePill(text = change, trend = trend)
-                Text(
-                    text = "vs yesterday (${formatDuration(usage.yesterday.totalMillis)})",
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 11.sp
-                )
+        if (day != null && level != null) {
+            if (previous != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val (change, trend) = changeVsPrevious(day.totalMillis, previous.totalMillis)
+                    ChangePill(text = change, trend = trend)
+                    Text(
+                        text = "vs ${relativeDayLabel(previous.epochDay).lowercase()} (${formatDuration(previous.totalMillis)})",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 11.sp
+                    )
+                }
             }
-            UsageMeter(todayMillis, level, modifier = Modifier.padding(top = 8.dp))
+            UsageMeter(todayMillis ?: 0L, level, isToday, modifier = Modifier.padding(top = 8.dp))
         }
+        TimeTravelPill(
+            day = day,
+            isToday = isToday,
+            canGoBack = canGoBack,
+            canGoForward = canGoForward,
+            onBack = onBack,
+            onForward = onForward,
+            modifier = Modifier.padding(top = 6.dp)
+        )
     }
 }
 
@@ -293,7 +339,7 @@ private fun LevelChip(level: UsageProfile) {
 
 /** Thin 0–10h meter split into the five levels, with a marker at today's total. */
 @Composable
-private fun UsageMeter(todayMillis: Long, level: UsageProfile, modifier: Modifier = Modifier) {
+private fun UsageMeter(todayMillis: Long, level: UsageProfile, isToday: Boolean, modifier: Modifier = Modifier) {
     val fraction = (todayMillis.toFloat() / METER_MAX_MS).coerceIn(0f, 1f)
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         BoxWithConstraints(
@@ -328,8 +374,11 @@ private fun UsageMeter(todayMillis: Long, level: UsageProfile, modifier: Modifie
         }
         val next = UsageProfile.entries.getOrNull(level.ordinal + 1)
         Text(
-            text = if (next == null) "Past 8 hours today"
-            else "${formatDuration(level.maxDailyMillis - todayMillis)} left before ${next.title}",
+            text = when {
+                !isToday -> "Finished the day as ${level.title}"
+                next == null -> "Past 8 hours today"
+                else -> "${formatDuration(level.maxDailyMillis - todayMillis)} left before ${next.title}"
+            },
             color = Color.White.copy(alpha = 0.7f),
             fontSize = 11.sp
         )
@@ -400,7 +449,7 @@ private fun StatIcon(icon: ImageVector) {
 }
 
 @Composable
-private fun TopAppsCard(usage: UsageSnapshot?, onOpenApp: (String) -> Unit) {
+private fun TopAppsCard(day: DayUsage?, isToday: Boolean, onOpenApp: (String) -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -408,10 +457,14 @@ private fun TopAppsCard(usage: UsageSnapshot?, onOpenApp: (String) -> Unit) {
             .padding(horizontal = 14.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        val apps = usage?.today?.apps.orEmpty()
+        val apps = day?.apps.orEmpty()
         if (apps.isEmpty()) {
             Text(
-                text = if (usage == null) "Loading…" else "No app usage recorded yet today.",
+                text = when {
+                    day == null -> "Loading…"
+                    isToday -> "No app usage recorded yet today."
+                    else -> "No app usage recorded that day."
+                },
                 color = Slate,
                 fontSize = 12.sp
             )
@@ -426,6 +479,69 @@ private fun TopAppsCard(usage: UsageSnapshot?, onOpenApp: (String) -> Unit) {
                 )
             }
         }
+    }
+}
+
+/** Small date pill in the hero card: ‹ [calendar] Today › to step through the last 14 days. */
+@Composable
+private fun TimeTravelPill(
+    day: DayUsage?,
+    isToday: Boolean,
+    canGoBack: Boolean,
+    canGoForward: Boolean,
+    onBack: () -> Unit,
+    onForward: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Mint)
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PillArrow(forward = false, enabled = canGoBack, onClick = onBack)
+        Row(
+            modifier = Modifier.padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.CalendarToday,
+                contentDescription = null,
+                tint = Forest,
+                modifier = Modifier.size(12.dp)
+            )
+            Text(
+                text = day?.let { relativeDayLabel(it.epochDay) } ?: "—",
+                color = Forest,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+        }
+        PillArrow(forward = true, enabled = canGoForward, onClick = onForward)
+    }
+}
+
+@Composable
+private fun PillArrow(forward: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .alpha(if (enabled) 1f else 0.3f)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(R.drawable.ic_chevron_right),
+            contentDescription = if (forward) "Next day" else "Previous day",
+            colorFilter = ColorFilter.tint(Forest),
+            modifier = Modifier
+                .size(14.dp)
+                .rotate(if (forward) 0f else 180f)
+        )
     }
 }
 

@@ -17,7 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.WbSunny
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
@@ -63,7 +66,9 @@ import com.nightwise.timewise.data.usage.AppUsage
 import com.nightwise.timewise.ui.components.AppIcon
 import com.nightwise.timewise.ui.components.FocusToggle
 import com.nightwise.timewise.ui.components.LimitDialog
+import com.nightwise.timewise.ui.components.IconTile
 import com.nightwise.timewise.ui.components.SmallActionButton
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.nightwise.timewise.ui.components.OutlineButton
 import com.nightwise.timewise.ui.components.PrimaryButton
 import com.nightwise.timewise.ui.components.ScreenHeader
@@ -255,7 +260,10 @@ fun FocusScreen(
             }
         }
         SectionTitle("Challenges")
-        ChallengeType.entries.forEach { type -> ChallengeCard(type, active, now, onStart = { onStart(type) }) }
+        val badgesLeft = ChallengeLogic.earnedBadges(state.history).size < Badge.entries.size
+        ChallengeType.entries.forEach { type ->
+            ChallengeCard(type, active, now, showBadgeHint = badgesLeft, onStart = { onStart(type) })
+        }
 
         SectionTitle("App limits")
         appLimits()
@@ -418,9 +426,19 @@ private fun DistractionMeter(progress: ChallengeProgress?, graceMillis: Long) {
     }
 }
 
-/** One challenge: startable, running with its countdown, or waiting while another one runs. */
+/** Icon for each challenge, so the list is easy to scan. */
+private fun challengeIcon(type: ChallengeType): ImageVector = when (type) {
+    ChallengeType.ONE_HOUR -> Icons.Rounded.Timer
+    ChallengeType.EIGHT_HOURS -> Icons.Rounded.WbSunny
+    ChallengeType.ONE_DAY -> Icons.Rounded.CalendarToday
+}
+
+/**
+ * One challenge as a compact row: icon, title, a short line, and a Start button. Running ones
+ * show the countdown below; another one running greys this one out.
+ */
 @Composable
-private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Long, onStart: () -> Unit) {
+private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Long, showBadgeHint: Boolean, onStart: () -> Unit) {
     val context = LocalContext.current
     val running = active?.type == type
     val blocked = active != null && !running
@@ -428,21 +446,41 @@ private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Lo
         modifier = Modifier
             .fillMaxWidth()
             .focusCard(background = if (running) Mint else CardWhite, bordered = !running)
-            .padding(horizontal = 14.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconTile(
+                icon = challengeIcon(type),
+                tint = if (blocked) Mist else if (running) Color.White else Forest,
+                background = if (running) Forest else Mint,
+                size = 36.dp,
+                iconSize = 18.dp
+            )
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(text = type.label, color = if (blocked) Mist else Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Text(
-                    text = "Stay off your phone for ${formatLimitMinutes(type.durationMinutes)}. Up to ${formatLimitMinutes(type.graceMinutes)} in other apps is OK.",
+                    text = "Allow ${formatLimitMinutes(type.graceMinutes)} outside apps",
                     color = Slate,
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp
+                    fontSize = 12.sp
                 )
+                if (showBadgeHint && !blocked) {
+                    Row(
+                        modifier = Modifier
+                            .padding(top = 3.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(AmberTint)
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = Amber, modifier = Modifier.size(12.dp))
+                        Text(text = "Earn a badge", color = Amber, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
-            if (running) {
-                Text(
+            when {
+                running -> Text(
                     text = "Running",
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -452,6 +490,7 @@ private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Lo
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+                !blocked -> SmallActionButton(text = "Start", onClick = onStart)
             }
         }
         when {
@@ -485,7 +524,7 @@ private fun ChallengeCard(type: ChallengeType, active: ActiveChallenge?, now: Lo
                 fontSize = 12.sp,
                 lineHeight = 17.sp
             )
-            else -> PrimaryButton(text = "Start", onClick = onStart, showArrow = true)
+            else -> Unit
         }
     }
 }

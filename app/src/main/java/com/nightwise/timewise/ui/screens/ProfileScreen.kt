@@ -2,6 +2,7 @@ package com.nightwise.timewise.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,9 +24,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +42,7 @@ import com.nightwise.timewise.data.journey.JourneyProgress
 import com.nightwise.timewise.data.journey.JourneyState
 import com.nightwise.timewise.data.profile.ProfileSummary
 import com.nightwise.timewise.data.profile.UsageProfile
+import com.nightwise.timewise.data.profile.WeekStatus
 import com.nightwise.timewise.ui.changeVsPrevious
 import com.nightwise.timewise.ui.components.ChangePill
 import com.nightwise.timewise.ui.components.PrimaryButton
@@ -50,11 +59,16 @@ import com.nightwise.timewise.ui.theme.Ink
 import com.nightwise.timewise.ui.theme.Mist
 import com.nightwise.timewise.ui.theme.Slate
 import com.nightwise.timewise.ui.theme.StepperBg
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.roundToInt
 
 /** The gauge runs from 0 to 10 hours a day; anything beyond sits at the end. */
 private const val GAUGE_MAX_HOURS = 10f
 private const val HOUR_MS = 60 * 60 * 1000L
+private const val DAY_MS = 24 * HOUR_MS
 
 @Composable
 fun ProfileScreen(
@@ -94,6 +108,7 @@ fun ProfileScreen(
             else -> {
                 ProfileHero(summary)
                 GaugeCard(summary)
+                if (summary.weeklyStatuses.isNotEmpty()) WeeklyStatusCard(summary.weeklyStatuses)
                 NextLevelCard(summary, onOpenFocus)
                 CostCard(summary)
                 SectionTitle("All levels")
@@ -217,6 +232,139 @@ private fun GaugeCard(summary: ProfileSummary) {
         }
     }
 }
+
+/** Tallest bar, which is a full 10-hour day on the gauge scale. */
+private val WEEK_BAR_MAX_HEIGHT = 110.dp
+
+@Composable
+private fun WeeklyStatusCard(weeks: List<WeekStatus>) {
+    var selected by remember { mutableStateOf<Int?>(null) }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .focusCard()
+            .padding(horizontal = 14.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(text = "Weekly status", color = Ink, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = "Average hours a day in each week", color = Slate, fontSize = 11.sp)
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WEEK_BAR_MAX_HEIGHT + 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            weeks.forEachIndexed { index, week ->
+                val style = profileStyle(week.profile)
+                val fraction = (week.dailyAverageMillis.toFloat() / HOUR_MS / GAUGE_MAX_HOURS).coerceIn(0f, 1f)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable { selected = index }
+                        .alpha(if (selected == null || selected == index) 1f else 0.4f),
+                    verticalArrangement = Arrangement.Bottom,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = formatHoursDecimal(week.dailyAverageMillis),
+                        color = style.text,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(maxOf(WEEK_BAR_MAX_HEIGHT * fraction, 8.dp))
+                            .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                            .background(Brush.verticalGradient(listOf(style.light, style.dark)))
+                    )
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            weeks.forEachIndexed { index, week ->
+                val style = profileStyle(week.profile)
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { selected = index }
+                        .alpha(if (selected == null || selected == index) 1f else 0.4f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = weekLabel(week.weeksAgo),
+                        color = Slate,
+                        fontSize = 10.sp,
+                        lineHeight = 13.sp,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2
+                    )
+                    Text(
+                        text = week.profile.title,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(style.tint)
+                            .padding(horizontal = 2.dp, vertical = 4.dp),
+                        color = style.text,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        val chosen = selected?.let { weeks.getOrNull(it) }
+        if (chosen == null) {
+            Text(
+                text = "Tap a week to see its dates.",
+                color = Mist,
+                fontSize = 11.sp,
+                lineHeight = 15.sp
+            )
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(profileStyle(chosen.profile).tint)
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = "${formatDay(chosen.startEpochDay)} – ${formatDay(chosen.endEpochDay)}",
+                    color = Ink,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "${formatDurationHours(chosen.dailyAverageMillis)} a day on average · ${chosen.profile.title}",
+                    color = Slate,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+private fun weekLabel(weeksAgo: Int): String = if (weeksAgo == 1) "Last week" else "$weeksAgo weeks ago"
+
+/** Epoch days are whole calendar days, so they are formatted in UTC to avoid a one-day shift. */
+private fun formatDay(epochDay: Long): String =
+    SimpleDateFormat("d MMM yyyy", Locale.getDefault()).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
+    }.format(Date(epochDay * DAY_MS))
+
+private fun formatDurationHours(millis: Long): String = "%.1fh".format(millis.toFloat() / HOUR_MS)
+
+private fun formatHoursDecimal(millis: Long): String = "%.1fh".format(millis.toFloat() / HOUR_MS)
 
 @Composable
 private fun NextLevelCard(summary: ProfileSummary, onOpenFocus: () -> Unit) {

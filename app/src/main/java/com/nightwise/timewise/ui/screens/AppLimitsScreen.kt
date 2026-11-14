@@ -133,7 +133,7 @@ fun AppLimitsSection(
         tint = Forest,
         tileColor = Mint,
         title = "Extra-time steps",
-        subtitle = "$frictionReadySteps of $frictionTotalSteps ready · photos, dreams, to-dos, music",
+        subtitle = "$frictionReadySteps of $frictionTotalSteps ready · photos, faith, dreams, to-dos, music",
         onClick = onOpenFrictionSetup
     )
     NavRow(

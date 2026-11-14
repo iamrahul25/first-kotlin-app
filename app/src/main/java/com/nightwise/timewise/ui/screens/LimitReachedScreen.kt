@@ -68,6 +68,7 @@ import com.nightwise.timewise.data.friction.AwarenessKind
 import com.nightwise.timewise.data.friction.Dream
 import com.nightwise.timewise.data.friction.FrictionContent
 import com.nightwise.timewise.data.friction.FrictionLogic
+import androidx.compose.material.icons.rounded.VolunteerActivism
 import com.nightwise.timewise.data.friction.FrictionStep
 import com.nightwise.timewise.data.friction.FrictionTodo
 import com.nightwise.timewise.data.friction.LovedPhoto
@@ -184,6 +185,7 @@ fun LimitReachedScreen(
             when (step) {
                 FrictionStep.PHRASE -> PhraseStep(phrase, onReady)
                 FrictionStep.PEOPLE -> PeopleStep(content.photos, photoFile, onCheckPin, onReady)
+                FrictionStep.FAITH -> FaithStep(content.faithPhotos, photoFile, onReady)
                 FrictionStep.DREAM -> DreamStep(content.dreams, onReady)
                 FrictionStep.AWARENESS -> AwarenessStep(awareness, onReady)
                 FrictionStep.TODOS -> TodosStep(content.openTodos, onReady)
@@ -378,6 +380,60 @@ private fun PhraseStep(phrase: String, onReady: (Boolean) -> Unit) {
             else -> "$correct of ${phrase.length} characters"
         },
         done = matches
+    )
+}
+
+@Composable
+private fun FaithStep(
+    photos: List<LovedPhoto>,
+    photoFile: (LovedPhoto) -> File,
+    onReady: (Boolean) -> Unit
+) {
+    val pagerState = rememberPagerState { photos.size }
+    var visited by remember { mutableStateOf(setOf(0)) }
+    val seconds = rememberCountdown(FrictionLogic.FAITH_SECONDS)
+    LaunchedEffect(pagerState.currentPage) { visited = visited + pagerState.currentPage }
+    val allSeen = visited.size >= photos.size
+    LaunchedEffect(allSeen, seconds) { onReady(allSeen && seconds == 0) }
+
+    StepIntro(Icons.Rounded.VolunteerActivism, Purple, PurpleTint, "Your faith", "Take a moment with what you believe in. Look at every one of them.")
+    HorizontalPager(
+        state = pagerState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.82f),
+        pageSpacing = 12.dp
+    ) { page ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(18.dp))
+                .background(NeutralChip)
+        ) {
+            rememberStoredImage(photoFile(photos[page]), maxPx = 1200)?.let { image ->
+                Image(bitmap = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            }
+        }
+    }
+    if (photos.size > 1) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)) {
+            photos.indices.forEach { index ->
+                Box(
+                    modifier = Modifier
+                        .size(if (index == pagerState.currentPage) 8.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(if (index == pagerState.currentPage) Forest else CardBorder)
+                )
+            }
+        }
+    }
+    StatusText(
+        text = when {
+            !allSeen -> "Swipe to see all ${photos.size}"
+            seconds > 0 -> "Stay with them for ${seconds}s"
+            else -> "Hold on to what you believe in."
+        },
+        done = allSeen && seconds == 0
     )
 }
 

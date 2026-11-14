@@ -54,6 +54,7 @@ import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.permissions.PermissionUtils
 import com.nightwise.timewise.snapshot.DailySnapshotScheduler
 import com.nightwise.timewise.widget.UsageWidgets
+import com.nightwise.timewise.ui.components.AccessibilityDisclosureDialog
 import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
 import com.nightwise.timewise.ui.screens.AppDetailScreen
@@ -97,6 +98,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var repository: FocusRepository
     private var permissionStatus by mutableStateOf(PermissionStatus())
+    private var showAccessibilityDisclosure by mutableStateOf(false)
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -120,7 +122,8 @@ class MainActivity : ComponentActivity() {
         val actions = PermissionActions(
             requestUsageAccess = { PermissionUtils.openUsageAccessSettings(this) },
             requestNotifications = ::requestNotifications,
-            requestAccessibility = { PermissionUtils.openAccessibilitySettings(this) }
+            // Google Play: show the prominent disclosure and get consent before the settings open.
+            requestAccessibility = { showAccessibilityDisclosure = true }
         )
 
         setContent {
@@ -130,6 +133,15 @@ class MainActivity : ComponentActivity() {
                     permissions = permissionStatus,
                     actions = actions
                 )
+                if (showAccessibilityDisclosure) {
+                    AccessibilityDisclosureDialog(
+                        onAgree = {
+                            showAccessibilityDisclosure = false
+                            PermissionUtils.openAccessibilitySettings(this@MainActivity)
+                        },
+                        onDecline = { showAccessibilityDisclosure = false }
+                    )
+                }
             }
         }
     }
