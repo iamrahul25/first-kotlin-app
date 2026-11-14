@@ -39,10 +39,15 @@ class FrictionRepository private constructor(private val context: Context) {
 
     fun artFile(track: MotivationTrack): File? = if (track.hasArt) File(artDir, "${track.id}.jpg") else null
 
-    /** Copies picked images in, scaled down. Returns how many were added. Call off the main thread. */
-    fun addPhotos(uris: List<Uri>): Int {
+    /**
+     * Copies picked images in, scaled down. Faith photos stop at [FrictionLogic.FAITH_MAX_PHOTOS].
+     * Returns how many were added. Call off the main thread.
+     */
+    fun addPhotos(uris: List<Uri>, faith: Boolean = false): Int {
         photosDir.mkdirs()
-        val added = uris.mapNotNull { uri ->
+        val room = if (faith) FrictionLogic.FAITH_MAX_PHOTOS - _content.value.faithPhotos.size else Int.MAX_VALUE
+        if (room <= 0) return 0
+        val added = uris.take(room).mapNotNull { uri ->
             val bitmap = decode(uri, PHOTO_MAX_PX) ?: return@mapNotNull null
             val photo = LovedPhoto(newId(), caption = "", locked = false)
             val saved = runCatching {
@@ -51,7 +56,9 @@ class FrictionRepository private constructor(private val context: Context) {
             bitmap.recycle()
             photo.takeIf { saved }
         }
-        if (added.isNotEmpty()) update { it.copy(photos = it.photos + added) }
+        if (added.isNotEmpty()) {
+            update { if (faith) it.copy(faithPhotos = it.faithPhotos + added) else it.copy(photos = it.photos + added) }
+        }
         return added.size
     }
 
@@ -59,9 +66,14 @@ class FrictionRepository private constructor(private val context: Context) {
         update { content -> content.copy(photos = content.photos.map { if (it.id == id) transform(it) else it }) }
 
     fun removePhoto(id: String) {
-        val photo = _content.value.photos.firstOrNull { it.id == id } ?: return
+        val photo = (_content.value.photos + _content.value.faithPhotos).firstOrNull { it.id == id } ?: return
         photoFile(photo).delete()
-        update { content -> content.copy(photos = content.photos.filter { it.id != id }) }
+        update { content ->
+            content.copy(
+                photos = content.photos.filter { it.id != id },
+                faithPhotos = content.faithPhotos.filter { it.id != id }
+            )
+        }
     }
 
     fun addDream(text: String) {
@@ -160,6 +172,7 @@ class FrictionRepository private constructor(private val context: Context) {
         .put("photos", JSONArray(content.photos.map {
             JSONObject().put("id", it.id).put("caption", it.caption).put("locked", it.locked)
         }))
+        .put("faith", JSONArray(content.faithPhotos.map { JSONObject().put("id", it.id).put("caption", it.caption).put("locked", false) }))
         .put("dreams", JSONArray(content.dreams.map { JSONObject().put("id", it.id).put("text", it.text) }))
         .put("todos", JSONArray(content.todos.map {
             JSONObject().put("id", it.id).put("text", it.text).put("done", it.done)
@@ -174,6 +187,7 @@ class FrictionRepository private constructor(private val context: Context) {
         photos = json.objects("photos").map {
             LovedPhoto(it.getString("id"), it.optString("caption"), it.optBoolean("locked"))
         },
+        faithPhotos = json.objects("faith").map { LovedPhoto(it.getString("id"), it.optString("caption"), locked = false) },
         dreams = json.objects("dreams").map { Dream(it.getString("id"), it.getString("text")) },
         todos = json.objects("todos").map {
             FrictionTodo(it.getString("id"), it.getString("text"), it.optBoolean("done"))

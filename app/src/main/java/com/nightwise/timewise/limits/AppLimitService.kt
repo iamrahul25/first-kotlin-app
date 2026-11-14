@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
@@ -128,13 +129,31 @@ class AppLimitService : AccessibilityService() {
         if (!refreshForeground()) check()
     }
 
+    /**
+     * Enforces the limit for the app in front and schedules the next check. Every branch returns
+     * a delay, so the checks keep going even when the app in front has no limit, and an error
+     * can't end them. Before, a check that found no limit (launcher, another app, a dialog)
+     * returned without scheduling anything, so a limited app opened earlier was never checked
+     * again until the next time it was opened.
+     */
     private fun check() {
         cancelCheck()
-        val pkg = foreground ?: return
-        if (pkg == packageName) return
+        val delay = try {
+            enforceForeground()
+        } catch (e: Exception) {
+            Log.w(TAG, "Limit check failed; retrying", e)
+            UNLIMITED_CHECK_MS
+        }
+        scheduleCheck(delay)
+    }
+
+    /** Returns how long until the next check. */
+    private fun enforceForeground(): Long {
+        val pkg = foreground ?: return UNLIMITED_CHECK_MS
+        if (pkg == packageName) return UNLIMITED_CHECK_MS
         val state = limits.state.value
-        val limit = state.limitFor(pkg) ?: return
-        if (!state.enabled) return
+        val limit = state.limitFor(pkg) ?: return UNLIMITED_CHECK_MS
+        if (!state.enabled) return UNLIMITED_CHECK_MS
 
         val now = System.currentTimeMillis()
         val today = FocusRepository.currentEpochDay(now)
@@ -142,7 +161,7 @@ class AppLimitService : AccessibilityService() {
             .firstOrNull { it.packageName == pkg }?.millis ?: 0L
         val extra = state.extraMinutes(pkg, today)
         val remaining = LimitLogic.remainingMillis(used, limit.minutes, extra)
-        val delay = if (remaining == 0L) {
+        return if (remaining == 0L) {
             handler.post { startActivity(LimitReachedActivity.intent(this, pkg, used)) }
             // Once the block shows, TimeWise is in front and this stops; if the launch was refused, it tries again.
             RETRY_BLOCK_MS
@@ -150,7 +169,21 @@ class AppLimitService : AccessibilityService() {
             if (LimitLogic.shouldWarn(remaining)) warnOnce(pkg, today, extra, remaining)
             LimitLogic.nextCheckDelay(remaining)
         }
-        pendingCheck = executor.schedule({ refreshAndCheck() }, delay, TimeUnit.MILLISECONDS)
+    }
+
+    private fun scheduleCheck(delayMs: Long) {
+        pendingCheck = executor.schedule({ tick() }, delayMs, TimeUnit.MILLISECONDS)
+    }
+
+    /** One scheduled check. If it fails, it still schedules the next one so the chain never stops. */
+    private fun tick() {
+        try {
+            refreshAndCheck()
+        } catch (e: Exception) {
+            Log.w(TAG, "Limit tick failed; retrying", e)
+            cancelCheck()
+            scheduleCheck(UNLIMITED_CHECK_MS)
+        }
     }
 
     /** One heads-up per app per allowance: again after extra time is earned. */
@@ -176,10 +209,13 @@ class AppLimitService : AccessibilityService() {
         /** Usage events land a moment after the window changes. */
         private const val EVENT_SETTLE_MS = 400L
         private const val RETRY_BLOCK_MS = 3_000L
+        /** How often to re-check when no limited app is in front, or after an error. */
+        private const val UNLIMITED_CHECK_MS = 30_000L
         private const val RESUME_DELAY_MS = 1_500L
         /** Finds the app already open when the service starts. */
         private const val STARTUP_LOOKBACK_MS = 6 * 60 * 60 * 1000L
         private val SYSTEM_UI = setOf("com.android.systemui")
+        private const val TAG = "AppLimitService"
 
         @Volatile
         private var running: AppLimitService? = null
@@ -187,7 +223,7 @@ class AppLimitService : AccessibilityService() {
         /** After extra time is earned the app comes back to the front; time it again from there. */
         fun onExtraGranted() {
             val service = running ?: return
-            service.executor.schedule({ service.refreshAndCheck() }, RESUME_DELAY_MS, TimeUnit.MILLISECONDS)
+            service.executor.schedule({ service.tick() }, RESUME_DELAY_MS, TimeUnit.MILLISECONDS)
         }
     }
 }

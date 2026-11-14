@@ -40,11 +40,20 @@ class FrictionLogicTest {
 
         val full = FrictionContent(
             photos = listOf(LovedPhoto("p", "Mom", locked = false)),
+            faithPhotos = listOf(LovedPhoto("f", "", locked = false)),
             dreams = listOf(Dream("d", "Run a marathon")),
             todos = listOf(FrictionTodo("t", "Call grandma", done = false)),
             tracks = listOf(MotivationTrack("m", "content://song", "Song", null, hasArt = false))
         )
         assertEquals(FrictionStep.entries, FrictionLogic.steps(full))
+    }
+
+    @Test
+    fun faithStepNeedsAtLeastOnePhoto() {
+        assertFalse(FrictionStep.FAITH in FrictionLogic.steps(FrictionContent()))
+        val withFaith = FrictionContent(faithPhotos = listOf(LovedPhoto("f", "", locked = false)))
+        assertTrue(FrictionStep.FAITH in FrictionLogic.steps(withFaith))
+        assertFalse(FrictionStep.PEOPLE in FrictionLogic.steps(withFaith))
     }
 
     @Test

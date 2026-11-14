@@ -112,6 +112,9 @@ fun FrictionSetupRoute(onOpenAwareness: () -> Unit, onBack: () -> Unit) {
     val pickPhotos = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(MAX_PHOTOS_PER_PICK)) { uris ->
         if (uris.isNotEmpty()) import { repository.addPhotos(uris) }
     }
+    val pickFaith = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(FrictionLogic.FAITH_MAX_PHOTOS)) { uris ->
+        if (uris.isNotEmpty()) import { repository.addPhotos(uris, faith = true) }
+    }
     val pickMusic = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) import { repository.addTracks(uris) }
     }
@@ -121,6 +124,7 @@ fun FrictionSetupRoute(onOpenAwareness: () -> Unit, onBack: () -> Unit) {
         importing = importing,
         repository = repository,
         onAddPhotos = { pickPhotos.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+        onAddFaith = { pickFaith.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
         onAddMusic = { pickMusic.launch(arrayOf("audio/*")) },
         onOpenAwareness = onOpenAwareness,
         onBack = onBack
@@ -133,6 +137,7 @@ private fun FrictionSetupScreen(
     importing: Boolean,
     repository: FrictionRepository,
     onAddPhotos: () -> Unit,
+    onAddFaith: () -> Unit,
     onAddMusic: () -> Unit,
     onOpenAwareness: () -> Unit,
     onBack: () -> Unit
@@ -180,6 +185,10 @@ private fun FrictionSetupScreen(
 
         StepCard(FrictionStep.PEOPLE, content, "Photos of the people you want to do better for: family, your partner, friends. Swipe through all of them. Lock any photo with a PIN so only you can see it.") {
             PeopleSetup(content, repository, onAddPhotos)
+        }
+
+        StepCard(FrictionStep.FAITH, content, "Photos of God, or someone you believe in or have faith in. Add up to ${FrictionLogic.FAITH_MAX_PHOTOS}. They're always visible, with no PIN.") {
+            FaithSetup(content.faithPhotos, repository, onAddFaith)
         }
 
         StepCard(FrictionStep.DREAM, content, "What you want to achieve. You'll type one of them out to keep going.") {
@@ -334,6 +343,58 @@ private fun ListItemRow(
                 .clickable(onClick = onRemove)
                 .padding(5.dp)
         )
+    }
+}
+
+/** Up to [FrictionLogic.FAITH_MAX_PHOTOS] open photos, with an add tile while there's room. */
+@Composable
+private fun FaithSetup(photos: List<LovedPhoto>, repository: FrictionRepository, onAddPhotos: () -> Unit) {
+    val tiles: List<LovedPhoto?> = if (photos.size < FrictionLogic.FAITH_MAX_PHOTOS) photos + null else photos
+    tiles.chunked(PHOTO_COLUMNS).forEach { row ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            row.forEach { photo ->
+                val tileModifier = Modifier
+                    .weight(1f)
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                if (photo == null) {
+                    Column(
+                        modifier = tileModifier
+                            .border(1.dp, CardBorder, RoundedCornerShape(12.dp))
+                            .clickable(onClick = onAddPhotos),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically)
+                    ) {
+                        Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = null, tint = Forest, modifier = Modifier.size(26.dp))
+                        Text(
+                            text = "Add (${photos.size}/${FrictionLogic.FAITH_MAX_PHOTOS})",
+                            color = Forest,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                } else {
+                    Box(modifier = tileModifier.background(NeutralChip)) {
+                        rememberStoredImage(repository.photoFile(photo), maxPx = 360)?.let { image ->
+                            Image(bitmap = image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                        }
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Remove",
+                            tint = Color.White,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(4.dp)
+                                .size(22.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                .padding(4.dp)
+                                .clickable { repository.removePhoto(photo.id) }
+                        )
+                    }
+                }
+            }
+            repeat(PHOTO_COLUMNS - row.size) { Box(modifier = Modifier.weight(1f)) }
+        }
     }
 }
 
