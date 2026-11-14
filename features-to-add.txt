@@ -1,0 +1,45 @@
+Features to add: 
+---------------
+
+
+
+- Add a proper quotes, info, to add some good input to mind to keep motivate user to do something stop wasting time. 
+Understand the dopamine, how dopamine work, dopmine crash, and overlife effect. 
+
+
+Features added: 
+--------------
+
+- Profile section (Home header pill / Settings > Your profile): 5 levels from the 7-day daily
+  average - Monk (<2h), Mindful (2-4h), Hooked (4-6h), Addict (6-8h), Zombie (8h+). Shows a
+  gauge of where you stand, how much to cut a day to level up, days a year lost to the phone,
+  and the full level ladder.
+
+- "Is TimeWise helping?" card (Profile screen): saves your average from the 7 days before
+  install as the starting point (or your first week if Android has no older data), then shows
+  before vs last 7 days, a verdict (working / no change / worse), total time saved, unlocks
+  before vs now, weekly chart against the starting point, and milestones: install date and
+  when usage access and notifications were turned on. Settings shows "With TimeWise since".
+
+- App insights (Stats > App insights): Week / Month / All time ranking of the biggest
+  time-wasters with total, average a day, days used and trend vs the period before, plus a
+  "#1 time-waster" card. Tap any app (here, or in Home / Stats / Apps lists) for its detail:
+  time lost so far, today, this week (vs last week), last 30 days, daily average, a 7 / 30 day
+  daily graph, days opened, busiest day, share of screen time and days a year at this pace.
+
+- All features list (Settings > About > All features): every feature in bullet points, grouped
+  into 8 areas, each with a one-line description and where to find it in the app.
+
+- Add a option in Focus section: add individual limit on individual app
+And when focus is on: And user exhaust limit of that app add these friction things to avoid user to get extra time: 
+
+Like: 
+1) Type the below text -> I still want to watch screen and make my life useless (Everytime random phrase) then on next comes next task
+2) User can select photos of family member, Photo of girlfriend, for whome they want to do something (can add multiple swipable phootos and user can add pin on particular image if he/she want so that only he can see his girlfriend photo) 
+3) Can there dream list what he/she want to achieve (write one dream to from the list to proceed next) so that he can remember what he/she want to achieve and stop wasting time. 
+4) Some quotes related to phone usage time -> Very real fact and how impact overall health lift, strong quotes. (All add this quotes and info section related to mobile, screen, addition, etc -> Sepeaction button or section to view all the quotes, data, so, that user can read and make aware also good things also, if start focusing today, etc or minimising 1 hours days, )
+5) Some todo task which he/she has save already, which he/she saved in before. 
+6) Add music to play -> Which he she has selected from storage. (Motivation music), can add multiple music, autopic thumbnal from music or keep placeholder. 
+
+So, all 6 things one by one to allow user extra 15 min. 
+Do proper setting up of these things and later also user can set-it up. 
