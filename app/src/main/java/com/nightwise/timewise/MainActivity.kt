@@ -53,6 +53,7 @@ import com.nightwise.timewise.data.usage.UsageSnapshot
 import com.nightwise.timewise.permissions.PermissionStatus
 import com.nightwise.timewise.permissions.PermissionUtils
 import com.nightwise.timewise.snapshot.DailySnapshotScheduler
+import com.nightwise.timewise.widget.UsageWidgets
 import com.nightwise.timewise.ui.components.FocusBottomNav
 import com.nightwise.timewise.ui.components.Tab
 import com.nightwise.timewise.ui.screens.AppDetailScreen
@@ -136,6 +137,12 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         refreshPermissions()
+    }
+
+    /** Leaving the app is when the home screen comes back into view. */
+    override fun onStop() {
+        super.onStop()
+        UsageWidgets.refresh(this)
     }
 
     private fun refreshPermissions() {

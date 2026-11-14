@@ -8,6 +8,7 @@ import android.content.Intent
 import com.nightwise.timewise.data.FocusRepository
 import com.nightwise.timewise.data.badges.BadgeRepository
 import com.nightwise.timewise.data.usage.ScreenTimeRepository
+import com.nightwise.timewise.widget.UsageWidgets
 import java.util.Calendar
 import kotlin.concurrent.thread
 
@@ -57,6 +58,8 @@ class DailySnapshotReceiver : BroadcastReceiver() {
                 }
             } finally {
                 DailySnapshotScheduler.schedule(appContext)
+                // A new day has started, so the widgets go back to zero.
+                UsageWidgets.refresh(appContext)
                 pending.finish()
             }
         }

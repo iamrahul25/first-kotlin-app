@@ -86,6 +86,46 @@
             android:exported="false" />
 
         <receiver
+            android:name="com.nightwise.timewise.widget.TinyUsageWidget"
+            android:exported="true"
+            android:label="@string/widget_tiny_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_tiny_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nightwise.timewise.widget.SmallUsageWidget"
+            android:exported="true"
+            android:label="@string/widget_small_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_small_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nightwise.timewise.widget.MediumUsageWidget"
+            android:exported="true"
+            android:label="@string/widget_medium_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_medium_info" />
+        </receiver>
+
+        <receiver
+            android:name="com.nightwise.timewise.widget.WidgetRefreshReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name="com.nightwise.timewise.bedtime.SystemEventsReceiver"
             android:exported="true">
             <intent-filter>
