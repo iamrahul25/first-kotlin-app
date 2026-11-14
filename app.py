@@ -305,6 +305,22 @@ def app_version():
     return (name.group(1) if name else "unknown", code.group(1) if code else "unknown")
 
 
+def bump_version_text(text):
+    """Adds 1 to versionCode and the patch number of versionName in build.gradle.kts text."""
+    def bump_code(match):
+        return f"{match.group(1)}{int(match.group(2)) + 1}"
+
+    def bump_name(match):
+        major, minor, patch = match.group(2).split(".")
+        return f'{match.group(1)}{major}.{minor}.{int(patch) + 1}"'
+
+    text, code_count = re.subn(r"(versionCode\s*=\s*)(\d+)", bump_code, text, count=1)
+    text, name_count = re.subn(r'(versionName\s*=\s*")(\d+\.\d+\.\d+)"', bump_name, text, count=1)
+    if code_count != 1 or name_count != 1:
+        raise ValueError("versionCode or versionName (X.Y.Z) not found in app/build.gradle.kts")
+    return text
+
+
 def read_properties(path):
     props = {}
     if not os.path.exists(path):
@@ -457,8 +473,29 @@ def build_release_apk():
 
 
 def build_release_aab():
+    with open(APP_GRADLE, encoding="utf-8") as f:
+        original = f.read()
+    try:
+        bumped = bump_version_text(original)
+    except ValueError as error:
+        print(error)
+        return
+    with open(APP_GRADLE, "w", encoding="utf-8", newline="") as f:
+        f.write(bumped)
+    old_name = re.search(r'versionName\s*=\s*"([^"]+)"', original).group(1)
+    old_code = re.search(r"versionCode\s*=\s*(\d+)", original).group(1)
+    new_name = re.search(r'versionName\s*=\s*"([^"]+)"', bumped).group(1)
+    new_code = re.search(r"versionCode\s*=\s*(\d+)", bumped).group(1)
+    print("Bumping version for this upload...")
+    print(f"  versionCode {old_code} -> {new_code}")
+    print(f"  versionName {old_name} -> {new_name}")
+
     aab = build_release("bundleRelease", RELEASE_AAB)
     if not aab:
+        # Keep the version the Play Console last saw unchanged when the build didn't produce a bundle.
+        with open(APP_GRADLE, "w", encoding="utf-8", newline="") as f:
+            f.write(original)
+        print("Version change reverted because the .aab was not built.")
         return
 
     jarsigner = find_java_tool("jarsigner")
@@ -472,9 +509,9 @@ def build_release_aab():
             print("AAB signature check failed:")
             print((result.stdout or result.stderr).strip())
 
-    _, version_code = app_version()
-    print(f"Upload this .aab in Play Console. versionCode is {version_code}; Play rejects a versionCode")
-    print("that was already uploaded, so bump versionCode in app/build.gradle.kts before the next upload.")
+    version_name, version_code = app_version()
+    print(f"\nUpload this .aab in Play Console. versionName {version_name}, versionCode {version_code}.")
+    print("Play rejects a versionCode that was already uploaded; this option bumps it automatically each time.")
 
 
 def java_major_version(java):
